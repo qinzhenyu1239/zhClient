@@ -4,5 +4,10 @@
     <type fullname="Game.Datas.Messages.*" preserve="all" />
     <type fullname="AuthProxy" preserve="all" />
     <type fullname="PlayerProxy" preserve="all" />
+    <!-- ECS systems are discovered once and lifecycle delegates are cached at startup. -->
+    <type fullname="Framework.ECS.*" preserve="all" />
+    <type fullname="Battle*ComponentSystem" preserve="all" />
+    <type fullname="BattleEntitySystem" preserve="all" />
+    <type fullname="BattleUnitSystem" preserve="all" />
   </assembly>
 </linker>

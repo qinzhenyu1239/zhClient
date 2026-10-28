@@ -1,0 +1,6 @@
+技能ID,技能描述,技能参数1,技能参数2,技能参数3,技能参数4,技能参数5,技能参数6,技能距离,消耗技能点
+int,string,string,string,string,string,string,string,float,int
+ID,description,param1,param2,param3,param4,param5,param6,skillRange,skillPointCost
+100101,朝最近的一个敌方目标连续攻击param1次并造成流血；接下来param2个战斗回合开始时各扣除该目标最大生命值的param3%。,2,2,10,,,,1,1
+100102,使自身永久获得param1%的吸血效果；最多叠加param2层。,10,5,,,,,3,1
+100103,接下来param1个回合的普攻替换为连续爪击；每次普攻随机对敌方造成param2至param3次连续攻击。,3,1,5,,,,1,1

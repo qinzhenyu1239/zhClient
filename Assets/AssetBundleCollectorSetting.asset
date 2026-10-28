@@ -61,6 +61,19 @@ MonoBehaviour:
         FilterRuleName: CollectAll
         AssetTags: 
         UserData: 
+    - GroupName: Datas
+      GroupDesc: Datas
+      AssetTags:
+      ActiveRuleName: EnableGroup
+      Collectors:
+      - CollectPath: Assets/Game/AssetsPacakge/Datas
+        CollectorGUID: afa8bb644229c974ea5f38310acf4e8d
+        CollectorType: 0
+        AddressRuleName: AddressByFileName
+        PackRuleName: PackDirectory
+        FilterRuleName: CollectAll
+        AssetTags:
+        UserData:
     - GroupName: GUI
       GroupDesc: GUI
       AssetTags: 

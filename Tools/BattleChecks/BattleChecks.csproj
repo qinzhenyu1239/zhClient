@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../Assets/Game/Scripts/Excels/character.cs" />
+    <Compile Include="../../Assets/Game/Scripts/Excels/skill.cs" />
+    <Compile Include="../../Assets/Framework/Scripts/ECS/Core/*.cs" />
+    <Compile Include="../../Assets/Game/Scripts/ECS/Entity/*.cs" />
+    <Compile Include="../../Assets/Game/Scripts/ECS/Component/*.cs" />
+    <Compile Include="../../Assets/Game/Scripts/ECS/System/*.cs" />
+    <Compile Include="../../Assets/Framework/Scripts/Managers/CSVExcel/ExcelDataMgr.cs" />
+    <Compile Include="../../Assets/Framework/Scripts/Managers/CSVExcel/CsvReaderByString.cs" />
+    <Compile Include="ConfigReaderStubs.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="LifecycleChecks.cs" />
+    <Compile Include="SkillChecks.cs" />
+  </ItemGroup>
+</Project>

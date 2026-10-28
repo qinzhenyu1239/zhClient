@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System;
 using System.Reflection;
+using System.Text;
 
 /**
  *   版权：博毅创为教育咨询有限公司  2018
@@ -60,7 +61,11 @@ public class ExcelDataMgr : Singleton<ExcelDataMgr>
 		}
 		
 		string path = "Datas/" + fileName + ".csv";
-        string getString = (ResMgr.Instance.LoadAssetSync<TextAsset>(path) as TextAsset).text;
+        TextAsset asset = ResMgr.Instance.LoadAssetSync<TextAsset>(path);
+        if (asset == null)
+            throw new InvalidOperationException("Failed to load config table: " + path +
+                ". Check the YooAsset Datas collector and rebuild the resource manifest.");
+        string getString = DecodeTableText(asset.bytes);
 		CsvReaderByString csr = new CsvReaderByString (getString);
 
 		Dictionary<string,object> objDic = new Dictionary<string, object> ();
@@ -114,4 +119,19 @@ public class ExcelDataMgr : Singleton<ExcelDataMgr>
 		}
 		dataDic.Add(fileName, objDic);    //可以作为参数
 	}
+
+    internal static string DecodeTableText(byte[] bytes)
+    {
+        string text;
+        try
+        {
+            text = new UTF8Encoding(false, true).GetString(bytes);
+        }
+        catch (DecoderFallbackException)
+        {
+            // WPS/Excel can save Chinese CSV files in the Windows GBK code page.
+            text = Encoding.GetEncoding(936).GetString(bytes);
+        }
+        return text.TrimStart('\uFEFF');
+    }
 }

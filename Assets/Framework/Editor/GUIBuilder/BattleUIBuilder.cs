@@ -12,8 +12,7 @@ public static class BattleUIBuilder
     private static readonly Color Background = Hex("101722");
     private static readonly Color Panel = Hex("172331");
     private static readonly Color Muted = Hex("8597AC");
-    private static readonly Color Ally = Hex("53C8DE");
-    private static readonly Color Enemy = Hex("F07878");
+    private static readonly Color Accent = Hex("53C8DE");
 
     [InitializeOnLoadMethod]
     private static void Initialize()
@@ -46,17 +45,13 @@ public static class BattleUIBuilder
             Transform t = content.transform;
             Box("Header", t, 0, 310, 1280, 100, Hex("141F2C"));
             Label("Title", t, "战斗布阵", -462, 322, 280, 40, 28, Color.white, TextAnchor.MiddleLeft);
-            Label("Subtitle", t, "FORMATION  /  9 VS 9", -462, 289, 280, 24, 12, Muted, TextAnchor.MiddleLeft);
+            Label("Subtitle", t, "BATTLEFIELD  /  9 × 3", -462, 289, 280, 24, 12, Muted, TextAnchor.MiddleLeft);
             Box("RoundPanel", t, 0, 313, 184, 60, Hex("223144"));
             Label("RoundText", t, "第 01 回合", 0, 313, 170, 44, 22, Hex("E2C891"));
             Button("ExitBtn", t, "退出战斗", 536, 313, 136, 44, Hex("293647"));
-            Team(t, "Ally", -330, "我方阵容", Ally);
-            Team(t, "Enemy", 330, "敌方阵容", Enemy);
-            Box("Divider", t, 0, 7, 1, 402, Hex("2C3B4C"));
-            Label("Versus", t, "VS", 0, 26, 90, 60, 32, Hex("E2C891"));
-            Label("VersusHint", t, "交战区", 0, -22, 84, 30, 12, Muted);
+            Battlefield(t);
             Box("Footer", t, 0, -305, 1280, 110, Hex("141F2C"));
-            Label("HintText", t, "选择格子部署单位 · 每方最多上阵 9 名", -330, -289, 550, 30, 17, Hex("C5D0DD"), TextAnchor.MiddleLeft);
+            Label("HintText", t, "选择格子部署单位 · 共 27 个战场格子", -330, -289, 550, 30, 17, Hex("C5D0DD"), TextAnchor.MiddleLeft);
             Label("StatusText", t, "等待布阵", -330, -320, 550, 26, 13, Muted, TextAnchor.MiddleLeft);
             Button("AutoFormationBtn", t, "自动布阵", 278, -305, 144, 48, Hex("293E50"));
             Button("StartBattleBtn", t, "开始战斗", 484, -305, 224, 48, Hex("356D77"));
@@ -67,26 +62,27 @@ public static class BattleUIBuilder
             AssetDatabase.SaveAssets();
             Validate(saved);
             Selection.activeObject = saved;
-            Debug.Log("[BattleUI] Created " + PrefabPath + " (9 slots per side generated at runtime).");
+            Debug.Log("[BattleUI] Created " + PrefabPath + " (27 shared slots generated at runtime).");
         }
         finally { UnityEngine.Object.DestroyImmediate(root); }
     }
 
-    private static void Team(Transform parent, string side, float x, string title, Color accent)
+    private static void Battlefield(Transform parent)
     {
-        GameObject panel = Box(side + "Panel", parent, x, 2, 548, 488, Panel);
+        GameObject panel = Box("BattlePanel", parent, 0, 2, 1200, 488, Panel);
         Transform t = panel.transform;
-        Box("Accent", t, 0, 242, 548, 4, accent);
-        Label("Title", t, title, -130, 210, 236, 38, 24, accent, TextAnchor.MiddleLeft);
-        Label("CountText", t, "上阵 0 / 9", 162, 210, 160, 32, 16, Muted, TextAnchor.MiddleRight);
-        GameObject grid = Node(side + "Grid", t, 0, -6, 500, 370);
+        Box("Accent", t, 0, 242, 1200, 4, Accent);
+        Label("Title", t, "战场", -440, 210, 236, 38, 24, Accent, TextAnchor.MiddleLeft);
+        Label("CountText", t, "共 27 格", 450, 210, 220, 32, 16, Muted, TextAnchor.MiddleRight);
+        GameObject grid = Node("BattleGrid", t, 0, -6, 1160, 370);
         GridLayoutGroup layout = grid.AddComponent<GridLayoutGroup>();
-        layout.cellSize = new Vector2(156, 114);
-        layout.spacing = new Vector2(16, 14);
+        layout.cellSize = new Vector2(120, 114);
+        layout.spacing = new Vector2(10, 14);
+        layout.startAxis = GridLayoutGroup.Axis.Vertical;
         layout.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
-        layout.constraintCount = 3;
+        layout.constraintCount = BattleFormationView.ColumnCount;
         layout.childAlignment = TextAnchor.MiddleCenter;
-        Label("FormationHint", t, "3 × 3 阵型  ·  点击空位上阵", 0, -218, 490, 24, 13, Muted);
+        Label("FormationHint", t, "9 列 × 3 行 · 点击空位上阵", 0, -218, 1120, 24, 13, Muted);
     }
 
     private static void ConfigureFormation(GameObject root)
@@ -97,8 +93,7 @@ public static class BattleUIBuilder
         if (view == null) view = root.AddComponent<BattleFormationView>();
         var data = new SerializedObject(view);
         data.FindProperty("slotPrefab").objectReferenceValue = template;
-        data.FindProperty("allyGrid").objectReferenceValue = root.transform.Find("Content/AllyPanel/AllyGrid");
-        data.FindProperty("enemyGrid").objectReferenceValue = root.transform.Find("Content/EnemyPanel/EnemyGrid");
+        data.FindProperty("battleGrid").objectReferenceValue = root.transform.Find("Content/BattlePanel/BattleGrid");
         data.ApplyModifiedPropertiesWithoutUndo();
     }
 
@@ -177,16 +172,17 @@ public static class BattleUIBuilder
     private static void Validate(GameObject root)
     {
         if (root == null) throw new InvalidOperationException("UIBattle prefab is missing.");
-        foreach (string side in new[] { "Ally", "Enemy" })
-        {
-            Transform grid = root.transform.Find("Content/" + side + "Panel/" + side + "Grid");
-            if (grid == null || grid.childCount != 0) throw new InvalidOperationException(side + " grid must be empty for runtime generation.");
-        }
+        Transform grid = root.transform.Find("Content/BattlePanel/BattleGrid");
+        if (grid == null || grid.childCount != 0) throw new InvalidOperationException("Battle grid must be empty for runtime generation.");
+        var layout = grid.GetComponent<GridLayoutGroup>();
+        if (layout == null || layout.constraint != GridLayoutGroup.Constraint.FixedColumnCount ||
+            layout.constraintCount != BattleFormationView.ColumnCount || layout.startAxis != GridLayoutGroup.Axis.Vertical)
+            throw new InvalidOperationException("Battle grid must have 9 columns with 3 slots per column.");
         var view = root.GetComponent<BattleFormationView>();
         if (view == null) throw new InvalidOperationException("BattleFormationView is missing.");
         var data = new SerializedObject(view);
-        foreach (string key in new[] { "slotPrefab", "allyGrid", "enemyGrid" })
+        foreach (string key in new[] { "slotPrefab", "battleGrid" })
             if (data.FindProperty(key).objectReferenceValue == null) throw new InvalidOperationException("Missing formation reference: " + key);
-        Debug.Log("[BattleUI] Validation passed: empty grids and dynamic slot prefab bindings.");
+        Debug.Log("[BattleUI] Validation passed: shared 9-column grid and dynamic slot prefab binding.");
     }
 }

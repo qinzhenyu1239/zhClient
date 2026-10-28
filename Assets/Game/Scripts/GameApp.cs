@@ -22,7 +22,7 @@ public class GameApp : UnitySingleton<GameApp>
     public IEnumerator EnterGame() { // 进入游戏
         Debug.Log("EnterGame ...");
 
-        Debug.Log("Client framework ready. Connect and authenticate explicitly before sending game requests.");
+        UIMgr.Instance.ShowUIView("GUI/Prefabs/UIBattle");
 
         Debug.Log("End Game");
         yield break;

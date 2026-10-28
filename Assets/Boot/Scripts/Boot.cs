@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using YooAsset;
+using Framework.ECS;
 
 public class Boot : UnitySingleton<Boot>
 {
@@ -39,6 +40,7 @@ public class Boot : UnitySingleton<Boot>
         this.gameObject.AddComponent<TcpSocketMgr>().Init(this.serverIp, this.port);
 
         ExcelDataMgr.Instance.Init();
+        this.gameObject.AddComponent<EcsRuntime>().Init();
 
         this.gameObject.AddComponent<SceneMgr>().Init();
         this.gameObject.AddComponent<GameApp>().Init();

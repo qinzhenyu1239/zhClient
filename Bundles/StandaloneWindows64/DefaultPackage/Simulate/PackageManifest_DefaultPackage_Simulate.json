@@ -457,10 +457,66 @@
         },
         {
             "Address": "",
-            "AssetPath": "Assets/Game/AssetsPacakge/GUI/Prefabs/UILoading.prefab",
+            "AssetPath": "Assets/Game/AssetsPacakge/Datas/character.csv",
             "AssetGUID": "",
             "AssetTags": [],
             "BundleID": 3,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Datas/fragment.csv",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 3,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Datas/fruit.csv",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 3,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Datas/JsonText.txt",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 3,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Datas/skill.csv",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 3,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/GUI/Prefabs/Items/AllySlot.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 4,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/GUI/Prefabs/UIBattle.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 5,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/GUI/Prefabs/UILoading.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 5,
             "DependIDs": []
         },
         {
@@ -468,7 +524,7 @@
             "AssetPath": "Assets/Game/AssetsPacakge/GUI/Prefabs/UILogin.prefab",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 3,
+            "BundleID": 5,
             "DependIDs": []
         },
         {
@@ -476,7 +532,7 @@
             "AssetPath": "Assets/Game/AssetsPacakge/GUI/Prefabs/UISelectRole.prefab",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 3,
+            "BundleID": 5,
             "DependIDs": []
         }
     ],
@@ -509,6 +565,28 @@
         },
         {
             "BundleName": "assets_game_assetspacakge_models.bundle",
+            "UnityCRC": 0,
+            "FileHash": "00000000000000000000000000000000",
+            "FileCRC": "00000000",
+            "FileSize": 0,
+            "IsRawFile": false,
+            "LoadMethod": 0,
+            "Tags": [],
+            "ReferenceIDs": []
+        },
+        {
+            "BundleName": "assets_game_assetspacakge_datas.bundle",
+            "UnityCRC": 0,
+            "FileHash": "00000000000000000000000000000000",
+            "FileCRC": "00000000",
+            "FileSize": 0,
+            "IsRawFile": false,
+            "LoadMethod": 0,
+            "Tags": [],
+            "ReferenceIDs": []
+        },
+        {
+            "BundleName": "assets_game_assetspacakge_gui_prefabs_items.bundle",
             "UnityCRC": 0,
             "FileHash": "00000000000000000000000000000000",
             "FileCRC": "00000000",
