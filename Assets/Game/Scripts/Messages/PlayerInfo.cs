@@ -1,0 +1,1 @@
+// Protocol definition moved to the synchronized server message files.

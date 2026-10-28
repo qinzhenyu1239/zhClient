@@ -1,0 +1,8 @@
+<linker>
+  <assembly fullname="Assembly-CSharp">
+    <!-- Contracts and response handlers are discovered through reflection. -->
+    <type fullname="Game.Datas.Messages.*" preserve="all" />
+    <type fullname="AuthProxy" preserve="all" />
+    <type fullname="PlayerProxy" preserve="all" />
+  </assembly>
+</linker>

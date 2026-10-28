@@ -1,0 +1,533 @@
+{
+    "FileVersion": "1.5.2",
+    "EnableAddressable": false,
+    "LocationToLower": false,
+    "IncludeAssetGUID": false,
+    "OutputNameStyle": 1,
+    "PackageName": "DefaultPackage",
+    "PackageVersion": "Simulate",
+    "AssetList": [
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Scenes/main.unity",
+            "AssetGUID": "",
+            "AssetTags": [
+                "mainScene"
+            ],
+            "BundleID": 0,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/attack1.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/attack2.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/attack3.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/attack4.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/bestReward.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/bossAngry.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/bossAttackGround1.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/bossAttackGround2.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/bossAttackGround3.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/bossAttackGround4.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/bossVertigo.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/bossWeaponHit.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/bossWeaponWaving1.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/bossWeaponWaving2.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/bossWeaponWaving3.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/changeColor.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/click.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/collectKey.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/collectPeopleRight.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/collectPeopleWrong.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/diamondCollect.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/diamondReceive.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/dodge.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/enemyHitFly.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/fail.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/fallDownOnGround.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/fire.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/footstep1.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/footstep2.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/footstep3.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/footstep4.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/footstep5.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/getSkin.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/invincible.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/jumpLandingGround.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/levelUp.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/numRaise.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/revive.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/rewardBigBox.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/rewardSmallBox.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/wallThoughFail.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/wallThoughSuccess.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Sounds/win.mp3",
+            "AssetGUID": "",
+            "AssetTags": [
+                "Sound"
+            ],
+            "BundleID": 1,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Models/Cube.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 2,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/GUI/Prefabs/UILoading.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 3,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/GUI/Prefabs/UILogin.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 3,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/GUI/Prefabs/UISelectRole.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 3,
+            "DependIDs": []
+        }
+    ],
+    "BundleList": [
+        {
+            "BundleName": "assets_game_assetspacakge_scenes.bundle",
+            "UnityCRC": 0,
+            "FileHash": "00000000000000000000000000000000",
+            "FileCRC": "00000000",
+            "FileSize": 0,
+            "IsRawFile": false,
+            "LoadMethod": 0,
+            "Tags": [
+                "mainScene"
+            ],
+            "ReferenceIDs": []
+        },
+        {
+            "BundleName": "assets_game_assetspacakge_sounds.bundle",
+            "UnityCRC": 0,
+            "FileHash": "00000000000000000000000000000000",
+            "FileCRC": "00000000",
+            "FileSize": 0,
+            "IsRawFile": false,
+            "LoadMethod": 0,
+            "Tags": [
+                "Sound"
+            ],
+            "ReferenceIDs": []
+        },
+        {
+            "BundleName": "assets_game_assetspacakge_models.bundle",
+            "UnityCRC": 0,
+            "FileHash": "00000000000000000000000000000000",
+            "FileCRC": "00000000",
+            "FileSize": 0,
+            "IsRawFile": false,
+            "LoadMethod": 0,
+            "Tags": [],
+            "ReferenceIDs": []
+        },
+        {
+            "BundleName": "assets_game_assetspacakge_gui_prefabs.bundle",
+            "UnityCRC": 0,
+            "FileHash": "00000000000000000000000000000000",
+            "FileCRC": "00000000",
+            "FileSize": 0,
+            "IsRawFile": false,
+            "LoadMethod": 0,
+            "Tags": [],
+            "ReferenceIDs": []
+        }
+    ]
+}

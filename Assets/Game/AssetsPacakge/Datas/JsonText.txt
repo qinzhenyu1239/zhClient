@@ -1,0 +1,1 @@
+{"rst":{"rstCode":"0","rstMsg":"SUCCESS","partnerCodeList": [{"partnerCode": "p-00001","partnerName": "server1"},{"partnerCode": "p-00057","partnerName": "server2"}]}}

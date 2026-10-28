@@ -1,0 +1,28 @@
+# Unity-generated caches and local editor settings
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+
+# IDE-generated project files (keep Assets, Packages, ProjectSettings and .meta files)
+/.vs/
+/.idea/
+/*.csproj
+/*.sln
+/*.slnx
+/*.unityproj
+*.suo
+*.user
+*.userprefs
+
+# .NET build output, including Tools projects
+**/bin/
+**/obj/
+
+# Operating-system metadata
+.DS_Store
+Thumbs.db
+Desktop.ini

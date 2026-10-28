@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <LangVersion>9.0</LangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../Assets/Framework/Scripts/Serializer/*.cs" />
+    <Compile Include="../../Assets/Framework/Scripts/Utils/Attributes.cs" />
+    <Compile Include="../../Assets/Framework/Scripts/Utils/TypeScanner.cs" />
+    <Compile Include="../../Assets/Framework/Scripts/Managers/TcpSocketMgr.cs" />
+    <Compile Include="../../Assets/Framework/Scripts/Managers/EventMgr.cs" />
+    <Compile Include="../../Assets/Framework/Scripts/Net/*.cs" />
+    <Compile Include="../../Assets/Game/Scripts/Messages/*.cs" />
+    <Compile Include="../../../New_Server/GameServer/src/Framework/Core/serializer/GoogleProtocolCodec.Generated.cs" Link="ServerGoogleCodec.cs" />
+    <Compile Include="Program.cs" />
+    <Reference Include="protobuf-net"><HintPath>../../Assets/Framework/Scripts/3rd/protobuf-net/Plugins/protobuf-net.dll</HintPath></Reference>
+    <Reference Include="protobuf-net.Core"><HintPath>../../Assets/Framework/Scripts/3rd/protobuf-net/Plugins/protobuf-net.Core.dll</HintPath></Reference>
+    <Reference Include="Google.Protobuf"><HintPath>../../../New_Server/GameServer/bin/Debug/net8.0/Google.Protobuf.dll</HintPath></Reference>
+  </ItemGroup>
+</Project>
