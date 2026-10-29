@@ -4,6 +4,14 @@ using Framework.ECS;
 [EntitySystemOf(typeof(BattleShieldComponent))]
 public static class BattleShieldComponentSystem
 {
+    public static void AddPermanentShield(this BattleUnit unit, float amount, int defenseBonus)
+    {
+        if (unit == null || !unit.IsAlive || amount <= 0 || defenseBonus < 0) return;
+        var shield = unit.GetComponent<BattleShieldComponent>() ?? unit.AddComponent<BattleShieldComponent>();
+        shield.Layers.Add(new BattleShieldLayer { Amount = amount, ExpiresAtRound = int.MaxValue, DefenseBonus = defenseBonus });
+        shield.Layers.Sort((a, b) => a.ExpiresAtRound.CompareTo(b.ExpiresAtRound));
+    }
+
     public static void AddShield(this BattleUnit unit, float amount, int rounds)
     {
         var round = unit?.GetParent<BattleEntity>()?.Round;

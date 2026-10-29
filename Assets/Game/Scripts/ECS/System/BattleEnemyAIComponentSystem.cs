@@ -23,7 +23,7 @@ public static class BattleEnemyAIComponentSystem
             if (usable.Contains(id) || !unit.Skills.CanQueue(id, out _)) continue;
             var definition = unit.Skills.GetDefinition(id);
             if (id == BattleSkillDefinition.DoubleStrike || id == BattleSkillDefinition.ThunderStrike ||
-                id == BattleSkillDefinition.ChainLightning || id == BattleSkillDefinition.Thundercloud)
+                id == BattleSkillDefinition.ChainLightning || id == BattleSkillDefinition.Thundercloud || id == BattleSkillDefinition.JudgmentBeam)
             {
                 if (unit.Combat.FindTargetInRange(definition.Range) == null) continue;
             }
@@ -31,6 +31,8 @@ public static class BattleEnemyAIComponentSystem
                 unit.GetComponent<BattleComboAttackComponent>()?.RemainingAttacks > 0) continue;
             if (id == BattleSkillDefinition.Thundercloud &&
                 unit.GetComponent<BattleThundercloudComponent>()?.RemainingStrikes > 0) continue;
+            if (id == BattleSkillDefinition.HolyJudgment &&
+                unit.GetComponent<BattleJudgmentComponent>()?.LastRound >= battle.Round.RoundNumber) continue;
             usable.Add(id);
         }
         if (usable.Count > 0) unit.Skills.TryQueue(usable[battle.Round.Random.Next(usable.Count)], out _);

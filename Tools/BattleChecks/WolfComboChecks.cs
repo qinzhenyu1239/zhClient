@@ -34,8 +34,45 @@ static class WolfComboChecks
         return action;
     }
 
+    static void CheckOrdinaryLifesteal()
+    {
+        foreach (int slot in new[] { 9, 12 })
+        {
+            using var battle = Create();
+            var actor = battle.GetUnitAt(slot);
+            var target = battle.GetUnitAt(slot == 9 ? 12 : 9);
+            foreach (var member in battle.Battlefield.Units)
+                if (member != actor && member != target) member.RemoveComponent<BattleActionComponent>();
+            actor.Skills.CancelPendingSkill();
+            actor.Health.CurrentHp = 9000;
+            Check(actor.Skills.TryQueue(100102, out _), "select lifesteal before ordinary attack");
+            battle.World.Update(15);
+            battle.Round.ActionOrder.Remove(actor);
+            battle.Round.ActionOrder.Insert(0, actor);
+            var pool = battle.GetComponent<BattleSkillPointComponent>();
+            int points = pool.CurrentFor(actor.Side);
+            battle.World.Update(1);
+            var result = battle.Round.DrainActions().Single();
+            Check(result.Unit == actor && result.SkillId == 100102 && result.Hits.Count == 1 && result.Damage == 100,
+                "both sides cast lifesteal then execute exactly one ordinary attack");
+            Check(actor.CurrentHp == 9025 && result.Healing == 25 && target.CurrentHp == 9900,
+                "new lifesteal stack applies to the same ordinary attack");
+            Check(actor.HasActedThisRound && pool.CurrentFor(actor.Side) == points && actor.Skills.CooldownRemaining(100102) == 2,
+                "buff plus ordinary attack uses one action and one paid skill reservation with normal cooldown");
+            var extra = new BattleActionResult();
+            actor.GetComponent<BattleBasicAttackComponent>().TryAttack(extra);
+            Check(extra.Hits.Count == 0 && !actor.Skills.TryQueue(100102, out _), "same turn cannot attack or cast twice");
+        }
+        using var noTarget = Create();
+        noTarget.Round.Phase = BattlePhase.Combat;
+        var rear = noTarget.GetUnitAt(3);
+        Check(Cast(rear, 100102).Hits.Count == 0 && rear.GetComponent<BattleLifestealComponent>().Stacks == 1,
+            "no target still grants lifesteal without creating an attack");
+    }
+
     public static void Run()
     {
+        CheckOrdinaryLifesteal();
         var live = new BattleSkillDefinition(ExcelDataMgr.Instance.GetConfigData<skill>("100103"));
         Check(live.Int(1) == 3, "live ultimate grants three attacks");
         foreach (int slot in new[] { 9, 12 })
@@ -102,7 +139,7 @@ static class WolfComboChecks
 
         using var ordinary = Create();
         ordinary.Round.Phase = BattlePhase.Combat;
-        Check(Cast(ordinary.GetUnitAt(9), 100102).Hits.Count == 0, "outside ultimate lifesteal stays a standalone buff");
-        Console.WriteLine("PASS: wolf next-three-attack ultimate, both sides lifesteal-before-volley, same-volley healing, one action/charge, second-skill CD, charge expiry, no target/silence retention, standalone lifesteal.");
+        Check(Cast(ordinary.GetUnitAt(9), 100102).Hits.Count == 1, "outside ultimate lifesteal preserves ordinary attack");
+        Console.WriteLine("PASS: wolf lifesteal-before-normal/ultimate attacks on both sides, same-attack healing, one action/charge/payment, second-skill CD, charge expiry, no target/silence retention.");
     }
 }

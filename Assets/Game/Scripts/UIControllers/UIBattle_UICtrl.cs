@@ -1,4 +1,6 @@
 using System;
+using System.Linq;
+using System.Text;
 using UnityEngine;
 using UnityEngine.UI;
 using Framework.ECS;
@@ -11,6 +13,11 @@ public class UIBattle_UICtrl : UICtrl
     public BattleFormationView Formation { get; private set; }
     public BattleEntity Battle { get; private set; }
     private Button startBattleButton;
+    private Button damageToggleButton;
+    private Text damageToggleText;
+    private GameObject damagePanel;
+    private Text allyDamageText;
+    private Text enemyDamageText;
     private string lastAction = "等待单位行动";
     private BattleUnit selectedUnit;
     private readonly List<Button> skillButtons = new List<Button>();
@@ -21,6 +28,14 @@ public class UIBattle_UICtrl : UICtrl
     private void Awake()
     {
         Formation = GetComponent<BattleFormationView>();
+        allyDamageText = View<Text>("Content/BattlePanel/DamagePanel/AllyDamageText");
+        enemyDamageText = View<Text>("Content/BattlePanel/DamagePanel/EnemyDamageText");
+        damagePanel = View<RectTransform>("Content/BattlePanel/DamagePanel").gameObject;
+        damageToggleButton = View<Button>("Content/BattlePanel/DamageToggleBtn");
+        damageToggleText = View<Text>("Content/BattlePanel/DamageToggleBtn/Text");
+        damageToggleButton.onClick.AddListener(ToggleDamageStatistics);
+        SetDamageStatisticsVisible(false);
+        RefreshDamageStatistics();
         startBattleButton = View<Button>("Content/StartBattleBtn");
         startBattleButton.onClick.AddListener(StartBattle);
         Formation.Initialize();
@@ -139,7 +154,8 @@ public class UIBattle_UICtrl : UICtrl
             var skills = ExcelDataMgr.Instance.GetConfigDatas<skill>(null);
             character thunderGod = ExcelDataMgr.Instance.GetConfigData<character>(BattleEntity.ThunderGodId.ToString());
             character moonGoddess = ExcelDataMgr.Instance.GetConfigData<character>(BattleEntity.MoonlightGoddessId.ToString());
-            BattleEntity battle = BattleInitializationSystem.CreateRandomBattle(new[] { config, thunderGod, moonGoddess },
+            character judicator = ExcelDataMgr.Instance.GetConfigData<character>(BattleEntity.JudicatorId.ToString());
+            BattleEntity battle = BattleInitializationSystem.CreateRandomBattle(new[] { config, thunderGod, moonGoddess, judicator },
                 EcsRuntime.Instance.World, skillConfigs: skills);
             Formation.ResetCombatEffects();
             Formation.ShowBattle(battle);
@@ -174,9 +190,10 @@ public class UIBattle_UICtrl : UICtrl
         string attack = result.Target == null ? "无范围内目标" :
             result.Hit ? "造成 " + result.Damage.ToString("0.##") + " 伤害" : "攻击未命中";
         if (result.Kind == BattleActionKind.Bleed) attack = "流血 " + result.Damage.ToString("0.##");
-        else if (result.Kind == BattleActionKind.Skill || result.Kind == BattleActionKind.Lightning || result.Kind == BattleActionKind.Moonlight) attack = result.Message + (result.Target == null ? "" : "，" + attack);
+        else if (result.Kind == BattleActionKind.Skill || result.Kind == BattleActionKind.Lightning || result.Kind == BattleActionKind.Moonlight || result.Kind == BattleActionKind.Execution) attack = result.Message + (result.Target == null ? "" : "，" + attack);
         else if (!string.IsNullOrEmpty(result.Message)) attack = result.Message + "，" + attack;
         if (result.Hits.Count > 1) attack += "（" + result.Hits.Count + "次）";
+        foreach (var hit in result.Hits) if (hit.Executed) { attack += " · 斩杀"; break; }
         if (result.MoonMarkedSlots.Count > 0) attack += "，月印 +" + result.MoonMarkedSlots.Count;
         if (result.MoonExplosions > 0) attack += "，月印引爆 " + result.MoonExplosions + "次";
         if (result.Healing > 0) attack += "，吸血 +" + result.Healing.ToString("0.##");
@@ -188,8 +205,44 @@ public class UIBattle_UICtrl : UICtrl
         Formation.PlayActionEffect(result);
     }
 
+    private void ToggleDamageStatistics() => SetDamageStatisticsVisible(!damagePanel.activeSelf);
+
+    private void SetDamageStatisticsVisible(bool visible)
+    {
+        damagePanel.SetActive(visible);
+        damageToggleText.text = visible ? "收起统计 ▴" : "伤害统计 ▾";
+        if (visible)
+        {
+            damagePanel.transform.SetAsLastSibling();
+            RefreshDamageStatistics();
+        }
+    }
+
+    private void RefreshDamageStatistics()
+    {
+        if (allyDamageText != null) allyDamageText.text = DamageList(BattleSide.Ally);
+        if (enemyDamageText != null) enemyDamageText.text = DamageList(BattleSide.Enemy);
+    }
+
+    private string DamageList(BattleSide side)
+    {
+        if (Battle == null || Battle.IsDisposed) return "等待开战";
+        var text = new StringBuilder();
+        foreach (var unit in Battle.Battlefield.Units.Where(u => !u.IsDisposed && u.Side == side)
+            .OrderByDescending(u => u.GetComponent<BattleDamageStatisticsComponent>()?.TotalDamage ?? 0)
+            .ThenBy(u => u.UnitId))
+        {
+            double damage = unit.GetComponent<BattleDamageStatisticsComponent>()?.TotalDamage ?? 0;
+            text.Append(unit.Name).Append(" #").Append(unit.UnitId);
+            if (!unit.IsAlive) text.Append(" †");
+            text.Append("  ").Append(damage.ToString("0.##")).Append('\n');
+        }
+        return text.ToString();
+    }
+
     private void RefreshBattleStatus()
     {
+        RefreshDamageStatistics();
         BattleRoundComponent round = Battle.Round;
         if (round == null)
         {
@@ -213,6 +266,7 @@ public class UIBattle_UICtrl : UICtrl
     private void OnDestroy()
     {
         if (startBattleButton != null) startBattleButton.onClick.RemoveListener(StartBattle);
+        if (damageToggleButton != null) damageToggleButton.onClick.RemoveListener(ToggleDamageStatistics);
         foreach (var pair in slotListeners) if (pair.Key != null) pair.Key.onClick.RemoveListener(pair.Value);
         Battle?.Dispose();
     }

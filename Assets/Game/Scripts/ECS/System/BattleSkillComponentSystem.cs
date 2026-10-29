@@ -36,7 +36,8 @@ public static class BattleSkillComponentSystem
         if (definition == null || (id != self.Skill1Id && id != self.Skill2Id && id != self.Skill3Id) ||
             (id != BattleSkillDefinition.DoubleStrike && id != BattleSkillDefinition.Lifesteal && id != BattleSkillDefinition.ComboAttack &&
              id != BattleSkillDefinition.ThunderStrike && id != BattleSkillDefinition.ChainLightning && id != BattleSkillDefinition.Thundercloud &&
-             id != BattleSkillDefinition.MoonCleave && id != BattleSkillDefinition.MoonBlink && id != BattleSkillDefinition.MoonShower))
+             id != BattleSkillDefinition.MoonCleave && id != BattleSkillDefinition.MoonBlink && id != BattleSkillDefinition.MoonShower &&
+             id != BattleSkillDefinition.JudgmentBeam && id != BattleSkillDefinition.HolyProtection && id != BattleSkillDefinition.HolyJudgment))
         { reason = "技能配置不存在或暂不支持"; return false; }
         int cooldown = self.CooldownRemaining(id);
         if (cooldown > 0) { reason = "技能冷却中，剩余 " + cooldown + " 回合"; return false; }
@@ -96,9 +97,12 @@ public static class BattleSkillComponentSystem
         }
         BattleUnit target = null;
         if (definition.Id == BattleSkillDefinition.DoubleStrike || definition.Id == BattleSkillDefinition.ThunderStrike ||
-            definition.Id == BattleSkillDefinition.ChainLightning || definition.Id == BattleSkillDefinition.Thundercloud)
+            definition.Id == BattleSkillDefinition.ChainLightning || definition.Id == BattleSkillDefinition.Thundercloud ||
+            definition.Id == BattleSkillDefinition.JudgmentBeam)
         {
-            target = unit.Combat.FindTargetInRange(definition.Range);
+            target = definition.Id == BattleSkillDefinition.JudgmentBeam
+                ? self.FindJudgmentBeamTarget(definition.Range)
+                : unit.Combat.FindTargetInRange(definition.Range);
             if (target == null)
             {
                 int refund = self.CancelPendingSkill();
@@ -117,6 +121,7 @@ public static class BattleSkillComponentSystem
                 {
                     BattleBleedComponent bleed = target.GetComponent<BattleBleedComponent>() ?? target.AddComponent<BattleBleedComponent>();
                     bleed.NextTickRound = battle.Round.RoundNumber + 1;
+                    bleed.Source = unit;
                     bleed.RemainingTicks = definition.Int(2);
                     bleed.MaxHpRatio = definition.Percent(3);
                 }
@@ -128,11 +133,11 @@ public static class BattleSkillComponentSystem
                 lifesteal.RatioPerStack = definition.Percent(1);
                 lifesteal.Stacks = Math.Min(lifesteal.MaxStacks, lifesteal.Stacks + 1);
                 action.Message = "吸血 " + (lifesteal.Stacks * lifesteal.RatioPerStack * 100).ToString("0.##") + "%（" + lifesteal.Stacks + "/" + lifesteal.MaxStacks + "）";
-                if (unit.GetComponent<BattleComboAttackComponent>().IsReady(battle.Round))
-                {
-                    action.Message += " · 大招连击";
-                    unit.GetComponent<BattleBasicAttackComponent>()?.TryAttack(action);
-                }
+                bool enhancedAttack = unit.GetComponent<BattleComboAttackComponent>().IsReady(battle.Round);
+                int hitsBeforeBuffAttack = action.Hits.Count;
+                unit.GetComponent<BattleBasicAttackComponent>()?.TryAttack(action);
+                if (action.Hits.Count > hitsBeforeBuffAttack)
+                    action.Message += enhancedAttack ? " · 大招连击" : " · 普攻";
                 break;
             case BattleSkillDefinition.ComboAttack:
                 BattleComboAttackComponent combo = unit.GetComponent<BattleComboAttackComponent>() ?? unit.AddComponent<BattleComboAttackComponent>();
@@ -151,6 +156,11 @@ public static class BattleSkillComponentSystem
             case BattleSkillDefinition.MoonBlink:
             case BattleSkillDefinition.MoonShower:
                 self.CastMoonSkill(definition, action);
+                break;
+            case BattleSkillDefinition.JudgmentBeam:
+            case BattleSkillDefinition.HolyProtection:
+            case BattleSkillDefinition.HolyJudgment:
+                self.CastJudicatorSkill(definition, target, action);
                 break;
         }
         if (definition.CooldownRounds > 0)

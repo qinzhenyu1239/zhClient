@@ -14,7 +14,7 @@ class Program
         return battle.Round.DrainActions();
     }
 
-    static bool TryMove(BattleEntity battle, BattleUnit unit) => unit.GetComponent<BattleMovementComponent>().TryMoveForward();
+    static bool TryMove(BattleEntity battle, BattleUnit unit) => unit.GetComponent<BattleMovementComponent>().TryMoveTowardEnemy();
     static BattleUnit FindTarget(BattleEntity battle, BattleUnit unit) => unit.GetComponent<BattleBasicAttackComponent>().FindTargetInRange();
     static float ApplyDamage(BattleEntity battle, BattleUnit unit, float damage) => unit.Health.ApplyDamage(damage);
 
@@ -91,22 +91,14 @@ class Program
         Check(!TryMove(battle, battle.GetUnitAt(3)), "Ally blocks forward movement");
         foreach (BattleUnit unit in battle.Battlefield.Units.Where(unit => unit.Side == BattleSide.Enemy))
             ApplyDamage(battle, unit, 1000);
-        foreach (int destination in new[] { 12, 15, 18, 21 })
-        {
-            int origin = ally.SlotIndex;
-            Check(TryMove(battle, ally) && ally.SlotIndex == destination, "Allies advance right one column");
-            Check(battle.GetUnitAt(origin) == null && ReferenceEquals(battle.GetUnitAt(destination), ally), "Occupancy moves atomically");
-        }
-        Check(!TryMove(battle, ally), "Cannot leave right edge");
+        Check(!TryMove(battle, ally) && ally.SlotIndex == 9, "No enemies means no target-driven movement");
 
         battle = BattleInitializationSystem.CreateBattle(Config());
         BattleUnit enemy = battle.GetUnitAt(12);
         Check(!TryMove(battle, enemy), "Enemy cannot cross occupied front cell");
         foreach (BattleUnit unit in battle.Battlefield.Units.Where(unit => unit.Side == BattleSide.Ally))
             ApplyDamage(battle, unit, 1000);
-        foreach (int destination in new[] { 9, 6, 3, 0 })
-            Check(TryMove(battle, enemy) && enemy.SlotIndex == destination && enemy.SlotIndex % 3 == 0, "Enemies advance left in same row");
-        Check(!TryMove(battle, enemy), "Cannot leave left edge");
+        Check(!TryMove(battle, enemy) && enemy.SlotIndex == 12, "Enemy also stays when no opponent remains");
 
         battle = BattleInitializationSystem.CreateBattle(Config());
         ally = battle.GetUnitAt(9);
@@ -140,8 +132,8 @@ class Program
                 Check(!TryMove(battle, actor) && actor.SlotIndex == 10, "Any adjacent enemy prevents movement");
                 ApplyDamage(battle, enemies[i], enemies[i].MaxHp);
             }
-            Check(TryMove(battle, actor) && actor.SlotIndex == (side == BattleSide.Ally ? 13 : 7),
-                "No adjacent enemy permits one forward step");
+            Check(!TryMove(battle, actor) && actor.SlotIndex == 10,
+                "After all targets die there is no automatic forward step");
         }
 
         foreach (int targetSlot in new[] { 9, 11, 7, 12, 14, 16 })
@@ -155,7 +147,7 @@ class Program
             // Duplicate scheduler entries must never grant a second attack in the round.
             battle.Round.ActionOrder.Insert(1, actor);
             var first = Tick(battle, 1, new KeepOrderRandom()).Single();
-            int expectedSlot = targetSlot == 9 || targetSlot == 11 || targetSlot == 7 ? 10 : 13;
+            int expectedSlot = targetSlot == 12 ? 9 : targetSlot == 14 ? 11 : targetSlot == 16 ? 13 : 10;
             Check(first.FromSlot == 10 && first.ToSlot == expectedSlot && first.Target == target && first.Hits.Count == 1,
                 "Attack adjacent enemy in place, otherwise move then attack once");
             Near(target.CurrentHp, 900, "Exactly one attack worth of damage");
@@ -296,6 +288,7 @@ class Program
 
         BattleEntity batch = BattleInitializationSystem.CreateBattle(Config(2));
         RemoveExcept(batch, 6, 15);
+        batch.GetUnitAt(15).Combat.AttackRange = 1;
         IReadOnlyList<BattleActionResult> results = Tick(batch, 17, new KeepOrderRandom());
         Check(results.Count == 2 && results[0].TargetSlot == 15 && results[0].Target.SlotIndex == 12,
             "Returned actions retain impact positions when their target moves later in the same update");
@@ -399,6 +392,8 @@ class Program
 
     static void Main()
     {
+        DamageStatisticsChecks.Run();
+        MovementChecks.Run();
         CheckClockAndOrder();
         CheckMovementAndRange();
         CheckAdjacentAttackPriority();
@@ -414,6 +409,7 @@ class Program
         MoonChecks.Run();
         CooldownChecks.Run();
         WolfComboChecks.Run();
+        JudicatorChecks.Run();
         Console.WriteLine("PASS: preparation/action timing, repeated rounds, randomized order, movement/blocking/bounds, Manhattan range, hit formula, subtractive defense damage, death and victory.");
     }
 }

@@ -65,79 +65,15 @@ static class MoonChecks
 
     static void CheckAssassins()
     {
+        // Detailed opening-placement and pursuit cases live in MovementChecks.
         foreach (int slot in new[] { 3, 12 })
         {
             using var battle = Create(slot);
-            BattleUnit unit = battle.GetUnitAt(slot);
-            int home = slot == 3 ? 3 : 18;
-            int rear = slot == 3 ? 21 : 0;
-            var assassin = unit.GetComponent<BattleAssassinComponent>();
-            if (battle.GetUnitAt(home) != unit) battle.GetUnitAt(home).Health.ApplyDamage(10000);
-            Check(!unit.Position.TryPlace(slot == 3 ? 0 : 21), "cannot enter own reserved edge column");
-            Check(unit.Position.TryPlace(home), "place at column two or seven");
-            battle.World.Update(15);
-            Check(unit.SlotIndex == home && !assassin.HasInfiltrated, "combat start never jumps before movement turn");
-            Check(unit.GetComponent<BattleMovementComponent>().TryMoveForward() && unit.SlotIndex == rear && assassin.HasInfiltrated,
-                "next movement jumps from column two or seven to opposing rear");
-            Check(unit.ForwardStep() == (slot == 3 ? -3 : 3), "infiltrated assassin faces inward");
-        }
-        foreach (int slot in new[] { 3, 12 })
-        {
-            using var battle = Create(slot);
-            BattleUnit actor = battle.GetUnitAt(slot);
-            int home = slot == 3 ? 3 : 18;
-            if (battle.GetUnitAt(home) != actor) battle.GetUnitAt(home).Health.ApplyDamage(10000);
-            Check(actor.Position.TryPlace(home), "prepare assassin at jump boundary");
-            BattleUnit target = battle.Battlefield.Units.First(unit => unit.Side != actor.Side && unit.IsAlive);
-            Check(target.Position.TryPlace(slot == 3 ? 0 : 21), "enemy occupies adjacent reserved edge");
-            Check(!actor.GetComponent<BattleMovementComponent>().TryMoveForward() && actor.SlotIndex == home,
-                "adjacent enemy prevents both retreat and jump for either side");
-            battle.World.Update(15);
-            battle.Round.ActionOrder.Remove(actor);
-            battle.Round.ActionOrder.Insert(0, actor);
-            battle.World.Update(1);
-            var result = battle.Round.DrainActions().Single();
-            Check(result.Unit == actor && result.FromSlot == home && result.ToSlot == home &&
-                !actor.GetComponent<BattleAssassinComponent>().HasInfiltrated,
-                "scheduled action searches for targets before any assassin movement");
-        }
-        using (var battle = Create())
-        {
-            BattleUnit actor = battle.GetUnitAt(3);
-            Check(actor.Skills.TryQueue(100301, out _), "reserve cleave before movement turn");
-            battle.World.Update(15);
-            battle.Round.ActionOrder.Remove(actor);
-            battle.Round.ActionOrder.Insert(0, actor);
-            battle.World.Update(1);
-            var result = battle.Round.DrainActions().Single();
-            Check(result.FromSlot == 3 && result.ToSlot == 21 && result.Kind == BattleActionKind.Skill &&
-                result.Hits.Count == 3 && actor.HasActedThisRound,
-                "jump is the one movement then row skill resolves once at destination");
-        }
-        using (var battle = Create())
-        {
-            BattleUnit unit = battle.GetUnitAt(3);
-            battle.GetUnitAt(9).Health.ApplyDamage(10000);
-            Check(unit.Position.TryPlace(9), "start away from rear");
-            battle.GetUnitAt(3)?.Health.ApplyDamage(10000);
-            battle.GetUnitAt(6).Health.ApplyDamage(10000);
-            battle.GetUnitAt(12).Health.ApplyDamage(10000);
-            Check(unit.GetComponent<BattleMovementComponent>().TryMoveForward() && unit.SlotIndex == 6, "retreat one column");
-            Check(unit.GetComponent<BattleMovementComponent>().TryMoveForward() && unit.SlotIndex == 3 &&
-                !unit.GetComponent<BattleAssassinComponent>().HasInfiltrated, "reaching column two uses one movement without an extra jump");
-            Check(unit.GetComponent<BattleMovementComponent>().TryMoveForward() && unit.SlotIndex == 21, "reach own rear then jump");
-            Check(unit.FindAdjacentEnemy() == battle.GetUnitAt(18), "backline target is now forward");
-            battle.GetUnitAt(18).Health.ApplyDamage(10000);
-            Check(unit.GetComponent<BattleMovementComponent>().TryMoveForward() && unit.SlotIndex == 18, "advance inward after infiltration");
-        }
-        using (var battle = Create())
-        {
-            BattleUnit unit = battle.GetUnitAt(3);
-            for (int row = 0; row < 3; row++) Check(battle.GetUnitAt(6 + row).Position.TryPlace(21 + row), "block enemy rear with legal allied occupants");
-            Check(!unit.GetComponent<BattleMovementComponent>().TryMoveForward() && unit.SlotIndex == 3,
-                "full opposing rear waits without overwriting occupants");
-            battle.GetUnitAt(21).Health.ApplyDamage(10000);
-            Check(unit.GetComponent<BattleMovementComponent>().TryMoveForward() && unit.SlotIndex == 21, "retry when opposing rear opens");
+            var unit = battle.GetUnitAt(slot);
+            Check(unit.GetComponent<BattleAssassinComponent>().OpeningInfiltrationEligible == (slot == 3),
+                "only actual initial rear-column placement grants opening infiltration");
+            Check(!unit.GetComponent<BattleAssassinComponent>().HasInfiltrated,
+                "opening jump waits for the unit's movement opportunity");
         }
     }
 
@@ -291,6 +227,6 @@ static class MoonChecks
         CheckBlink();
         CheckShower();
         CheckShowerPerEnemyCap();
-        Console.WriteLine("PASS: Moon live CSV stats/costs, assassin mirrored rear jump/retreat/retry/inward attack, row cleave, empty-cell blink, moon mark stacking/detonation/armor/shield/death, ten 0.1-second ticks, frame partition, pause/death/disposal.");
+        Console.WriteLine("PASS: Moon live CSV stats/costs, assassin opening-placement eligibility, row cleave, empty-cell blink, moon mark stacking/detonation/armor/shield/death, ten 0.1-second ticks, frame partition, pause/death/disposal.");
     }
 }

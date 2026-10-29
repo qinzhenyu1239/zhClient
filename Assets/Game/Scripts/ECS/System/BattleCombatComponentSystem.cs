@@ -58,6 +58,7 @@ public static class BattleCombatComponentSystem
         bool hit = guaranteed || chance >= 1d || (chance > 0d && round.Random.NextDouble() < chance);
         float absorbed = 0;
         float damage = hit ? target.Health.ApplyDamage(damageAmount, out absorbed) : 0;
+        attacker.RecordDamage(damage);
         float healing = hit ? attacker.GetComponent<BattleLifestealComponent>().HealFromDirectDamage(damage) : 0;
         action.Hit |= hit;
         action.Damage += damage;
@@ -76,5 +77,5 @@ public static class BattleCombatComponentSystem
     }
 
     public static double HitChance(this BattleCombatComponent self, BattleCombatComponent target) => HitChance(self.Speed, target.Speed);
-    public static float BasicDamage(this BattleCombatComponent self, BattleCombatComponent target) => BasicDamage(self.Attack, target.Defense);
+    public static float BasicDamage(this BattleCombatComponent self, BattleCombatComponent target) => BasicDamage(self.Attack, target.GetParent<BattleUnit>()?.Defense ?? target.Defense);
 }

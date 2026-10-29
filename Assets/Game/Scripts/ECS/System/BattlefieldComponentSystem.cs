@@ -40,6 +40,7 @@ public static class BattlefieldComponentSystem
             unit.Skills.CancelPendingSkill();
             unit.GetComponent<BattleThundercloudComponent>()?.Dispose();
             unit.GetComponent<BattleMoonShowerComponent>()?.Dispose();
+            unit.GetComponent<BattleJudgmentComponent>()?.Dispose();
         }
         return true;
     }

@@ -37,11 +37,12 @@ public sealed class BattleCombatEffects : MonoBehaviour
         {
             if (hit.TargetSlot < 0 || hit.TargetSlot >= slots.Count) continue;
             Transform targetSlot = slots[hit.TargetSlot].transform;
-            if (action.Kind != BattleActionKind.Bleed && action.Kind != BattleActionKind.Lightning && action.Kind != BattleActionKind.Moonlight) PlayLunge(attackerSlot, targetSlot);
+            if (action.Kind != BattleActionKind.Bleed && action.Kind != BattleActionKind.Lightning && action.Kind != BattleActionKind.Moonlight && action.Kind != BattleActionKind.Execution) PlayLunge(attackerSlot, targetSlot);
             Transform node = targetSlot.Find("Portrait");
             Image image = node != null ? node.GetComponent<Image>() : null;
             Vector2 position = effectsLayer.InverseTransformPoint(node != null ? node.position : targetSlot.position);
             StartCoroutine(ShowImpact(hit.Hit, hit.Damage, position, image, font,
+                hit.Executed ? "斩杀" :
                 action.Kind == BattleActionKind.Bleed ? "流血 -" + hit.Damage.ToString("0.##") :
                 action.Kind == BattleActionKind.Lightning ? "雷击 -" + hit.Damage.ToString("0.##") :
                 action.Kind == BattleActionKind.Moonlight ? "月印引爆 -" + hit.Damage.ToString("0.##") :

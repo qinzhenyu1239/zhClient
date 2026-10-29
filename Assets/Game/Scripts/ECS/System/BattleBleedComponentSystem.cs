@@ -14,6 +14,7 @@ public static class BattleBleedComponentSystem
         }
         int slot = target.SlotIndex;
         float damage = target.Health.ApplyDamage(target.MaxHp * self.MaxHpRatio);
+        self.Source.RecordDamage(damage);
         var action = new BattleActionResult
         {
             RoundNumber = round.RoundNumber, Unit = target, Target = target,
@@ -21,7 +22,7 @@ public static class BattleBleedComponentSystem
             Kind = BattleActionKind.Bleed, Message = "流血"
         };
         action.Hits.Add(new BattleHitResult { TargetSlot = slot, Hit = true, Damage = damage });
-        round.PendingActions.Enqueue(action);
+        round.EnqueueAction(action);
         self.RemainingTicks--;
         self.NextTickRound = round.RoundNumber + 1;
         if (self.RemainingTicks <= 0 || !target.IsAlive) self.Dispose();

@@ -13,9 +13,7 @@ public static class BattleAssassinComponentSystem
     {
         BattleUnit unit = self?.GetParent<BattleUnit>();
         BattlefieldComponent field = unit?.GetParent<BattleEntity>()?.Battlefield;
-        if (self == null || !self.IsActive || self.HasInfiltrated || !unit.CanAct() || field == null) return false;
-        int homeColumn = unit.Side == BattleSide.Ally ? 1 : field.ColumnCount - 2;
-        if (unit.SlotIndex / field.RowCount != homeColumn) return false;
+        if (self == null || !self.IsActive || !self.OpeningInfiltrationEligible || self.HasInfiltrated || !unit.CanAct() || field == null) return false;
         int enemyColumn = unit.Side == BattleSide.Ally ? field.ColumnCount - 1 : 0;
         int row = unit.SlotIndex % field.RowCount;
         for (int offset = 0; offset < field.RowCount; offset++)
@@ -28,14 +26,4 @@ public static class BattleAssassinComponentSystem
         return false;
     }
 
-    public static bool TryApproachRear(this BattleAssassinComponent self)
-    {
-        BattleUnit unit = self?.GetParent<BattleUnit>();
-        if (self == null || !self.IsActive || self.HasInfiltrated || !unit.CanAct()) return false;
-        if (self.TryInfiltrate()) return true;
-        BattlefieldComponent field = unit.GetParent<BattleEntity>().Battlefield;
-        int homeColumn = unit.Side == BattleSide.Ally ? 1 : field.ColumnCount - 2;
-        if (unit.SlotIndex / field.RowCount == homeColumn) return false;
-        return unit.Position.TryPlace(unit.SlotIndex - unit.ForwardStep());
-    }
 }

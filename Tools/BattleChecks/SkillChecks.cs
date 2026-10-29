@@ -97,6 +97,7 @@ static class SkillChecks
             Check(combo.HitCount(battle.Round) == 5, "configured 1-5 random hit range");
         }
         int comboPoints = pool.Current;
+        target.Health.Heal(target.MaxHp);
         var comboAttack = new BattleActionResult();
         unit.GetComponent<BattleBasicAttackComponent>().TryAttack(comboAttack);
         Check(comboAttack.Hits.Count == 5 && comboAttack.Target == target, "combo executes five hits on the same target");

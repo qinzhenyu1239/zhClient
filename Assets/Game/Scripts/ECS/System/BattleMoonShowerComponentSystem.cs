@@ -40,7 +40,7 @@ public static class BattleMoonShowerComponentSystem
             shower.AppliedMarks.TryGetValue(target, out int applied);
             shower.AppliedMarks[target] = applied + 1;
             if (action.MoonExplosions > 0) action.Message = "月光印记 · 双层引爆";
-            battle.Round.PendingActions.Enqueue(action);
+            battle.Round.EnqueueAction(action);
             shower.RemainingMarks--;
             shower.SecondsUntilMark = shower.Interval;
             if (shower.RemainingMarks <= 0) shower.Dispose();

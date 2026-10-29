@@ -2,10 +2,11 @@ using System;
 using System.Collections.Generic;
 using Framework.ECS;
 
-public enum BattleActionKind { BasicAttack, Skill, Bleed, Lightning, Moonlight }
+public enum BattleActionKind { BasicAttack, Skill, Bleed, Lightning, Moonlight, Execution }
 
 public sealed class BattleHitResult
 {
+    public bool Executed { get; internal set; }
     public int TargetSlot { get; internal set; }
     public bool Hit { get; internal set; }
     public float Damage { get; internal set; }
@@ -60,9 +61,11 @@ public static class BattleRoundComponentSystem
                 unit.Skills.CancelPendingSkill();
                 unit.GetComponent<BattleThundercloudComponent>()?.Dispose();
                 unit.GetComponent<BattleMoonShowerComponent>()?.Dispose();
+                unit.GetComponent<BattleJudgmentComponent>()?.Dispose();
             }
         self.ActionOrder.Clear();
         self.PendingActions.Clear();
+        self.PendingReactions.Clear();
         self.Random = null;
     }
 
@@ -71,6 +74,9 @@ public static class BattleRoundComponentSystem
     {
         BattleEntity battle = self.GetParent<BattleEntity>();
         if (battle?.Battlefield == null) return;
+        bool executed = battle.CheckJudgments();
+        self.FlushReactions();
+        if (executed && battle.Battlefield.ResolveVictory()) return;
         double deltaSeconds = self.World.DeltaTime;
         while (deltaSeconds > 0 && self.Phase != BattlePhase.Finished)
         {
@@ -98,10 +104,23 @@ public static class BattleRoundComponentSystem
 
     public static IReadOnlyList<BattleActionResult> DrainActions(this BattleRoundComponent self)
     {
+        self.FlushReactions();
         if (self == null || self.IsDisposed || self.PendingActions.Count == 0) return Array.Empty<BattleActionResult>();
         var results = new List<BattleActionResult>(self.PendingActions.Count);
         while (self.PendingActions.Count > 0) results.Add(self.PendingActions.Dequeue());
         return results;
+    }
+
+    public static void EnqueueAction(this BattleRoundComponent self, BattleActionResult action)
+    {
+        self.PendingActions.Enqueue(action);
+        self.FlushReactions();
+    }
+
+    private static void FlushReactions(this BattleRoundComponent self)
+    {
+        if (self == null || self.IsDisposed) return;
+        while (self.PendingReactions.Count > 0) self.PendingActions.Enqueue(self.PendingReactions.Dequeue());
     }
 
     private static void BeginCombat(this BattleRoundComponent self)
@@ -134,14 +153,14 @@ public static class BattleRoundComponentSystem
         if (self.NextUnit >= self.ActionOrder.Count) { self.BeginNextRound(); return; }
         BattleUnit unit = self.ActionOrder[self.NextUnit++];
         var result = new BattleActionResult { RoundNumber = self.RoundNumber, Unit = unit, FromSlot = unit.SlotIndex };
-        if (unit.FindAdjacentEnemy() == null)
-            unit.GetComponent<BattleMovementComponent>()?.TryMoveForward();
+        battle.GetComponent<BattleEnemyAIComponent>()?.TrySelectSkill(unit);
+        unit.GetComponent<BattleMovementComponent>()?.TryMoveTowardEnemy();
         result.ToSlot = unit.SlotIndex;
         battle.GetComponent<BattleEnemyAIComponent>()?.TrySelectSkill(unit);
         if (unit.Skills == null || !unit.Skills.TryExecutePending(result))
             unit.GetComponent<BattleBasicAttackComponent>()?.TryAttack(result);
         unit.Action.HasActedThisRound = true;
-        self.PendingActions.Enqueue(result);
+        self.EnqueueAction(result);
         if (!battle.Battlefield.ResolveVictory())
         {
             self.SkipUnavailable();
@@ -171,6 +190,7 @@ public static class BattleRoundComponentSystem
         {
             unit.Skills.CancelPendingSkill();
             if (unit.Action != null) unit.Action.HasActedThisRound = false;
+            unit.GetComponent<BattleJudgmentComponent>()?.OnRoundStarted(self.RoundNumber);
             unit.GetComponent<BattleShieldComponent>()?.OnRoundStarted(self.RoundNumber);
             unit.GetComponent<BattleSilenceComponent>()?.OnRoundStarted(self.RoundNumber);
             unit.GetComponent<BattleBleedComponent>()?.OnRoundStarted(self);

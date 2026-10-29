@@ -30,6 +30,9 @@ public sealed class BattleSkillDefinition
     public const int MoonCleave = 100301;
     public const int MoonBlink = 100302;
     public const int MoonShower = 100303;
+    public const int JudgmentBeam = 100401;
+    public const int HolyProtection = 100402;
+    public const int HolyJudgment = 100403;
     public int Id { get; }
     public string Description { get; }
     public float Range { get; }
@@ -72,6 +75,15 @@ public sealed class BattleSkillDefinition
             case MoonShower:
                 MoonTickCount(); Int(3); Value(4); Int(5);
                 break;
+            case JudgmentBeam:
+                Value(1); ValidateExecutionThreshold(2);
+                break;
+            case HolyProtection:
+                Value(1); Int(2);
+                break;
+            case HolyJudgment:
+                ValidateExecutionThreshold(1); Int(2);
+                break;
         }
     }
 
@@ -81,6 +93,11 @@ public sealed class BattleSkillDefinition
         if (value < 1 || value >= int.MaxValue || Math.Floor(value) != value)
             throw new ArgumentException("Expected a positive integer skill parameter " + index + ": " + Id);
         return (int)value;
+    }
+
+    private void ValidateExecutionThreshold(int index)
+    {
+        if (Value(index) > 100) throw new ArgumentException("Execution threshold must not exceed 100%.");
     }
 
     public float Percent(int index) => parameters[index - 1] / 100f;

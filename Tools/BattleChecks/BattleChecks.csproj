@@ -22,5 +22,8 @@
     <Compile Include="MoonChecks.cs" />
     <Compile Include="CooldownChecks.cs" />
     <Compile Include="WolfComboChecks.cs" />
+    <Compile Include="JudicatorChecks.cs" />
+    <Compile Include="MovementChecks.cs" />
+    <Compile Include="DamageStatisticsChecks.cs" />
   </ItemGroup>
 </Project>

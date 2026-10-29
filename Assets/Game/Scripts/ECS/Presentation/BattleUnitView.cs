@@ -10,6 +10,7 @@ public sealed class BattleUnitView : MonoBehaviour
     private Sprite defaultPortrait;
     private Sprite thunderPortrait;
     private Sprite moonPortrait;
+    private Sprite judicatorPortrait;
     private bool portraitsLoaded;
 
     private void RefreshPortrait()
@@ -21,9 +22,11 @@ public sealed class BattleUnitView : MonoBehaviour
             defaultPortrait = image.sprite;
             thunderPortrait = ResMgr.Instance.LoadAssetSync<Sprite>("Images/ThunderGod.png");
             moonPortrait = ResMgr.Instance.LoadAssetSync<Sprite>("Images/MoonlightGoddess.png");
+            judicatorPortrait = ResMgr.Instance.LoadAssetSync<Sprite>("Images/Judicator.png");
             portraitsLoaded = true;
         }
-        image.sprite = Unit?.CharacterId == BattleEntity.MoonlightGoddessId ? moonPortrait :
+        image.sprite = Unit?.CharacterId == BattleEntity.JudicatorId ? judicatorPortrait :
+            Unit?.CharacterId == BattleEntity.MoonlightGoddessId ? moonPortrait :
             Unit?.CharacterId == BattleEntity.ThunderGodId ? thunderPortrait : defaultPortrait;
         image.preserveAspect = true;
     }
@@ -40,6 +43,8 @@ public sealed class BattleUnitView : MonoBehaviour
         public int slotNumber, column, row;
         public float currentHp;
         public float shield;
+        public int shieldDefenseBonus, judgmentFirstRound, judgmentLastRound;
+        public float judgmentThresholdPercent;
         public int silenceFirstRound, silenceLastRound, cloudRemainingStrikes;
         public int maxHp, attack, defense, battleType;
         public float speed, attackRange;
@@ -53,6 +58,7 @@ public sealed class BattleUnitView : MonoBehaviour
         public int moonMarkStacks, moonShowerRemainingMarks;
         public int skill1CooldownRounds, skill2CooldownRounds, skill3CooldownRounds;
         public bool assassinHasInfiltrated;
+        public bool assassinOpeningInfiltrationEligible;
     }
 
     [SerializeField, Tooltip("运行时 ECS 数据的显示快照，每次刷新都会同步；修改这里不会改变实际战斗数据。")]
@@ -78,6 +84,11 @@ public sealed class BattleUnitView : MonoBehaviour
         runtimeData.row = unit.Position == null ? 0 : unit.SlotIndex % BattleEntity.RowCount + 1;
         runtimeData.currentHp = unit.CurrentHp;
         runtimeData.shield = unit.GetComponent<BattleShieldComponent>()?.Amount ?? 0;
+        runtimeData.shieldDefenseBonus = unit.GetComponent<BattleShieldComponent>()?.DefenseBonus ?? 0;
+        var judgment = unit.GetComponent<BattleJudgmentComponent>();
+        runtimeData.judgmentFirstRound = judgment?.FirstRound ?? 0;
+        runtimeData.judgmentLastRound = judgment?.LastRound ?? 0;
+        runtimeData.judgmentThresholdPercent = judgment?.ThresholdPercent ?? 0;
         var silence = unit.GetComponent<BattleSilenceComponent>();
         runtimeData.silenceFirstRound = silence?.FirstRound ?? 0;
         runtimeData.silenceLastRound = silence?.LastRound ?? 0;
@@ -114,6 +125,7 @@ public sealed class BattleUnitView : MonoBehaviour
         runtimeData.moonMarkStacks = unit.GetComponent<BattleMoonMarkComponent>()?.Stacks ?? 0;
         runtimeData.moonShowerRemainingMarks = unit.GetComponent<BattleMoonShowerComponent>()?.RemainingMarks ?? 0;
         runtimeData.assassinHasInfiltrated = unit.GetComponent<BattleAssassinComponent>()?.HasInfiltrated ?? false;
+        runtimeData.assassinOpeningInfiltrationEligible = unit.GetComponent<BattleAssassinComponent>()?.OpeningInfiltrationEligible ?? false;
     }
 #endif
 

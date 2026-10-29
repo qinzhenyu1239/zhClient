@@ -26,15 +26,34 @@ public static class BattleHealthComponentSystem
         absorbed = target?.GetComponent<BattleShieldComponent>().Absorb(damage) ?? 0;
         float applied = Math.Min(self.CurrentHp, damage - absorbed);
         self.CurrentHp -= applied;
+        self.FinalizeDeath();
+        if (applied > 0) target?.GetParent<BattleEntity>()?.CheckJudgments();
+        return applied;
+    }
+
+    // Executions remove remaining HP directly, bypassing armor and every shield layer.
+    public static float Execute(this BattleHealthComponent self)
+    {
+        if (self == null || self.IsDisposed || self.CurrentHp <= 0) return 0;
+        float applied = self.CurrentHp;
+        self.CurrentHp = 0;
+        self.FinalizeDeath();
+        return applied;
+    }
+
+    private static void FinalizeDeath(this BattleHealthComponent self)
+    {
+        BattleUnit target = self.GetParent<BattleUnit>();
         if (self.CurrentHp <= 0)
         {
             target?.Skills.CancelPendingSkill();
             target?.GetComponent<BattleMoonMarkComponent>()?.Dispose();
             target?.GetComponent<BattleMoonShowerComponent>()?.Dispose();
+            target?.GetComponent<BattleShieldComponent>()?.Dispose();
+            target?.GetComponent<BattleJudgmentComponent>()?.Dispose();
         }
         BattlefieldComponent field = target?.GetParent<BattleEntity>()?.Battlefield;
         if (self.CurrentHp <= 0 && field != null && target.Position != null && field.GetUnitAt(target.SlotIndex) == target)
             field.Occupancy[target.SlotIndex] = null;
-        return applied;
     }
 }

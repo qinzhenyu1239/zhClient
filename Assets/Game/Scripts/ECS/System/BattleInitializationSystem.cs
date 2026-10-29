@@ -89,11 +89,16 @@ public static class BattleInitializationSystem
                 skills.Skill3Id = record.skill3Id;
                 foreach (int id in new[] { skills.Skill1Id, skills.Skill2Id, skills.Skill3Id })
                     if (definitions.TryGetValue(id, out BattleSkillDefinition definition)) skills.Definitions[id] = definition;
+                unit.AddComponent<BattleDamageStatisticsComponent>();
                 unit.AddComponent<BattleActionComponent>();
                 unit.AddComponent<BattleMovementComponent>();
                 unit.AddComponent<BattleBasicAttackComponent>();
                 field.Members.Add(unit);
                 if (!unit.Position.TryPlace(slotIndex)) throw new InvalidOperationException("Invalid initial battle position.");
+                var assassin = unit.GetComponent<BattleAssassinComponent>();
+                if (assassin != null)
+                    assassin.OpeningInfiltrationEligible = slotIndex / field.RowCount ==
+                        (unit.Side == BattleSide.Ally ? 1 : field.ColumnCount - 2);
             }
             battle.AddComponent<BattleEnemyAIComponent>().PlanSkills();
             return battle;

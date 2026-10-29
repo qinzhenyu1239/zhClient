@@ -57,6 +57,7 @@ public static class BattleUIBuilder
             Button("StartBattleBtn", t, "开始战斗", 484, -305, 224, 48, Hex("356D77"));
 
             ConfigureFormation(root);
+            ConfigureDamageStatistics(root);
             Directory.CreateDirectory(Path.GetDirectoryName(PrefabPath));
             GameObject saved = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
             AssetDatabase.SaveAssets();
@@ -108,6 +109,47 @@ public static class BattleUIBuilder
             PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
         }
         finally { PrefabUtility.UnloadPrefabContents(root); }
+    }
+
+    [MenuItem("Tools/Battle UI/Configure Damage Statistics")]
+    public static void ConfigureDamageStatisticsPrefab()
+    {
+        GameObject root = PrefabUtility.LoadPrefabContents(PrefabPath);
+        try
+        {
+            ConfigureDamageStatistics(root);
+            PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
+        }
+        finally { PrefabUtility.UnloadPrefabContents(root); }
+    }
+
+    private static void ConfigureDamageStatistics(GameObject root)
+    {
+        Transform panel = root.transform.Find("Content/BattlePanel");
+        var grid = panel.Find("BattleGrid").GetComponent<RectTransform>();
+        grid.anchoredPosition = new Vector2(0, -6);
+        grid.sizeDelta = new Vector2(1160, 370);
+        var layout = grid.GetComponent<GridLayoutGroup>();
+        layout.cellSize = new Vector2(120, 114);
+        layout.spacing = new Vector2(10, 14);
+        var count = panel.Find("CountText").GetComponent<RectTransform>();
+        count.anchoredPosition = new Vector2(370, 210);
+        count.sizeDelta = new Vector2(100, 32);
+        panel.Find("CountText").GetComponent<Text>().fontSize = 13;
+        Transform toggle = panel.Find("DamageToggleBtn");
+        if (toggle != null) UnityEngine.Object.DestroyImmediate(toggle.gameObject);
+        Button("DamageToggleBtn", panel, "伤害统计 ▾", 510, 210, 140, 36, Hex("293E50"));
+        Transform old = panel.Find("DamagePanel");
+        if (old != null) UnityEngine.Object.DestroyImmediate(old.gameObject);
+        Transform stats = Box("DamagePanel", panel, 460, -6, 240, 378, Hex("111C29")).transform;
+        stats.GetComponent<Image>().raycastTarget = true;
+        Label("Title", stats, "伤害统计", 0, 164, 212, 28, 19, Color.white);
+        Label("Rule", stats, "累计实际扣血 · 不含护盾", 0, 138, 220, 22, 12, Muted);
+        Label("AllyTitle", stats, "我方", 0, 112, 212, 24, 15, Accent, TextAnchor.MiddleLeft);
+        Label("AllyDamageText", stats, "等待开战", 0, 35, 216, 126, 12, Hex("C5D0DD"), TextAnchor.UpperLeft);
+        Label("EnemyTitle", stats, "敌方", 0, -44, 212, 24, 15, Hex("F07878"), TextAnchor.MiddleLeft);
+        Label("EnemyDamageText", stats, "等待开战", 0, -119, 216, 126, 12, Hex("C5D0DD"), TextAnchor.UpperLeft);
+        stats.gameObject.SetActive(false);
     }
 
     private static GameObject Node(string name, Transform parent, float x, float y, float w, float h)

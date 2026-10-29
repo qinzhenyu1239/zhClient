@@ -35,14 +35,15 @@ public static class BattleThundercloudComponentSystem
                 RoundNumber = battle.Round.RoundNumber, Unit = unit,
                 FromSlot = unit.SlotIndex, ToSlot = unit.SlotIndex, Message = "闪电雷云"
             };
+            float hpBefore = target.CurrentHp;
             unit.Combat.ResolveDirectHit(target, action, cloud.AttackMultiplier);
-            if (!target.IsAlive)
+            if (!target.IsAlive && action.Damage >= hpBefore)
             {
                 float shield = unit.Attack * cloud.KillShieldMultiplier;
                 unit.AddShield(shield, cloud.ShieldRounds);
                 action.ShieldGained = shield;
             }
-            battle.Round.PendingActions.Enqueue(action);
+            battle.Round.EnqueueAction(action);
             cloud.RemainingStrikes--;
             cloud.SecondsUntilStrike = 1;
             if (cloud.RemainingStrikes <= 0) cloud.Dispose();

@@ -20,4 +20,5 @@ public sealed class BattleRoundComponent : Entity, IAwake, IUpdate, IDestroy
     internal double ActionRemaining { get; set; }
     public System.Random Random { get; internal set; }
     internal Queue<BattleActionResult> PendingActions { get; } = new Queue<BattleActionResult>();
+    internal Queue<BattleActionResult> PendingReactions { get; } = new Queue<BattleActionResult>();
 }

@@ -36,7 +36,10 @@ static class CooldownChecks
     public static void Run()
     {
         var records = ExcelDataMgr.Instance.GetConfigDatas<skill>(null);
-        Check(records.Count == 9 && records.All(record => record.skillCd >= 0), "real CSV reads round-based skillCd for all skills");
+        var configuredIds = ExcelDataMgr.Instance.GetConfigDatas<character>(null)
+            .SelectMany(hero => new[] { hero.skill1Id, hero.skill2Id, hero.skill3Id }).Where(id => id != 0).Distinct();
+        Check(configuredIds.All(id => records.Any(record => record.ID == id)) && records.All(record => record.skillCd >= 0),
+            "real CSV reads round-based skillCd for every configured hero skill");
         Check(records.All(record => new BattleSkillDefinition(record).CooldownRounds == record.skillCd), "immutable definition snapshots CD");
         using var battle = Create();
         using var other = Create();
