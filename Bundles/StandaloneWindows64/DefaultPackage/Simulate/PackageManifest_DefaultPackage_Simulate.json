@@ -497,7 +497,7 @@
         },
         {
             "Address": "",
-            "AssetPath": "Assets/Game/AssetsPacakge/GUI/Prefabs/Items/AllySlot.prefab",
+            "AssetPath": "Assets/Game/AssetsPacakge/Images/download.png",
             "AssetGUID": "",
             "AssetTags": [],
             "BundleID": 4,
@@ -505,10 +505,26 @@
         },
         {
             "Address": "",
-            "AssetPath": "Assets/Game/AssetsPacakge/GUI/Prefabs/UIBattle.prefab",
+            "AssetPath": "Assets/Game/AssetsPacakge/Images/ThunderGod.png",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 4,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/GUI/Prefabs/Items/AllySlot.prefab",
             "AssetGUID": "",
             "AssetTags": [],
             "BundleID": 5,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/GUI/Prefabs/UIBattle.prefab",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 6,
             "DependIDs": []
         },
         {
@@ -516,7 +532,7 @@
             "AssetPath": "Assets/Game/AssetsPacakge/GUI/Prefabs/UILoading.prefab",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 5,
+            "BundleID": 6,
             "DependIDs": []
         },
         {
@@ -524,7 +540,7 @@
             "AssetPath": "Assets/Game/AssetsPacakge/GUI/Prefabs/UILogin.prefab",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 5,
+            "BundleID": 6,
             "DependIDs": []
         },
         {
@@ -532,7 +548,7 @@
             "AssetPath": "Assets/Game/AssetsPacakge/GUI/Prefabs/UISelectRole.prefab",
             "AssetGUID": "",
             "AssetTags": [],
-            "BundleID": 5,
+            "BundleID": 6,
             "DependIDs": []
         }
     ],
@@ -576,6 +592,17 @@
         },
         {
             "BundleName": "assets_game_assetspacakge_datas.bundle",
+            "UnityCRC": 0,
+            "FileHash": "00000000000000000000000000000000",
+            "FileCRC": "00000000",
+            "FileSize": 0,
+            "IsRawFile": false,
+            "LoadMethod": 0,
+            "Tags": [],
+            "ReferenceIDs": []
+        },
+        {
+            "BundleName": "assets_game_assetspacakge_images.bundle",
             "UnityCRC": 0,
             "FileHash": "00000000000000000000000000000000",
             "FileCRC": "00000000",

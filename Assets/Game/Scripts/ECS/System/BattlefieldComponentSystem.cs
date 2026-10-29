@@ -35,7 +35,11 @@ public static class BattlefieldComponentSystem
         round.Winner = battle.AliveCount(BattleSide.Ally) > 0 ? BattleSide.Ally :
             battle.AliveCount(BattleSide.Enemy) > 0 ? BattleSide.Enemy : (BattleSide?)null;
         round.Phase = BattlePhase.Finished;
-        foreach (var unit in self.Units) unit.Skills.CancelPendingSkill();
+        foreach (var unit in self.Units)
+        {
+            unit.Skills.CancelPendingSkill();
+            unit.GetComponent<BattleThundercloudComponent>()?.Dispose();
+        }
         return true;
     }
 }

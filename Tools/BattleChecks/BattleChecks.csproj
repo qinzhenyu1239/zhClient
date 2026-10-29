@@ -17,5 +17,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="LifecycleChecks.cs" />
     <Compile Include="SkillChecks.cs" />
+    <Compile Include="ThunderChecks.cs" />
+    <Compile Include="EnemyAIChecks.cs" />
   </ItemGroup>
 </Project>

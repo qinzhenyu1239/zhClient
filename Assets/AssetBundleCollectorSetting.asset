@@ -74,6 +74,19 @@ MonoBehaviour:
         FilterRuleName: CollectAll
         AssetTags:
         UserData:
+    - GroupName: Images
+      GroupDesc: Character portraits
+      AssetTags:
+      ActiveRuleName: EnableGroup
+      Collectors:
+      - CollectPath: Assets/Game/AssetsPacakge/Images
+        CollectorGUID: 3d6bb5e1581b1a946849bbb022a3d5a8
+        CollectorType: 0
+        AddressRuleName: AddressByFileName
+        PackRuleName: PackDirectory
+        FilterRuleName: CollectAll
+        AssetTags:
+        UserData:
     - GroupName: GUI
       GroupDesc: GUI
       AssetTags: 

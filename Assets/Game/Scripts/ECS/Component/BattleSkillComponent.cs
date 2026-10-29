@@ -14,6 +14,7 @@ public sealed class BattleSkillComponent : Entity, IDestroy
     public int ReservedCost { get; internal set; }
     internal int ReservedRound { get; set; }
     internal BattleSkillPointComponent ReservedPool { get; set; }
+    internal BattleSide ReservedSide { get; set; }
 }
 
 // Immutable snapshots of table data; runtime buffs never modify shared configuration.
@@ -22,6 +23,9 @@ public sealed class BattleSkillDefinition
     public const int DoubleStrike = 100101;
     public const int Lifesteal = 100102;
     public const int ComboAttack = 100103;
+    public const int ThunderStrike = 100201;
+    public const int ChainLightning = 100202;
+    public const int Thundercloud = 100203;
     public int Id { get; }
     public string Description { get; }
     public float Range { get; }
@@ -54,6 +58,9 @@ public sealed class BattleSkillDefinition
                 Int(1); Int(2); Int(3);
                 if (Int(3) < Int(2)) throw new ArgumentException("Invalid combo hit range.");
                 break;
+            case ThunderStrike: Int(2); break;
+            case ChainLightning: Int(1); Int(3); break;
+            case Thundercloud: Int(1); Int(4); break;
         }
     }
 

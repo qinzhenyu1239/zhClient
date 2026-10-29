@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Framework.ECS;
 
 [EntitySystemOf(typeof(BattleCombatComponent))]
@@ -23,7 +25,27 @@ public static class BattleCombatComponentSystem
         return nearest;
     }
 
-    public static void ResolveDirectHit(this BattleCombatComponent self, BattleUnit target, BattleActionResult action)
+    public static List<BattleUnit> FindEnemies(this BattleCombatComponent self, float range, int count)
+    {
+        BattleUnit unit = self?.GetParent<BattleUnit>();
+        var field = unit?.GetParent<BattleEntity>()?.Battlefield;
+        if (self == null || !self.IsActive || unit == null || !unit.IsAlive || unit.Position == null || field == null)
+            return new List<BattleUnit>();
+        return field.Units.Where(target => target.IsActive && target.IsAlive && target.Identity != null &&
+            target.Position != null && target.Combat != null && target.Side != unit.Side && field.GetUnitAt(target.SlotIndex) == target)
+            .Select(target => new { Unit = target, Distance = Math.Abs(unit.SlotIndex / field.RowCount - target.SlotIndex / field.RowCount) +
+                Math.Abs(unit.SlotIndex % field.RowCount - target.SlotIndex % field.RowCount) })
+            .Where(target => target.Distance <= range).OrderBy(target => target.Distance).ThenBy(target => target.Unit.SlotIndex)
+            .Take(count).Select(target => target.Unit).ToList();
+    }
+
+    public static void ResolveDirectHit(this BattleCombatComponent self, BattleUnit target, BattleActionResult action, float attackMultiplier = 1)
+    {
+        if (self == null || target == null) return;
+        self.ResolveHit(target, action, Math.Max(0, self.Attack * attackMultiplier - target.Defense));
+    }
+
+    public static void ResolveHit(this BattleCombatComponent self, BattleUnit target, BattleActionResult action, float damageAmount)
     {
         BattleUnit attacker = self?.GetParent<BattleUnit>();
         BattleRoundComponent round = attacker?.GetParent<BattleEntity>()?.Round;
@@ -32,12 +54,13 @@ public static class BattleCombatComponentSystem
         action.TargetSlot = target.SlotIndex;
         double chance = self.HitChance(target.Combat);
         bool hit = chance >= 1d || (chance > 0d && round.Random.NextDouble() < chance);
-        float damage = hit ? target.Health.ApplyDamage(self.BasicDamage(target.Combat)) : 0;
+        float absorbed = 0;
+        float damage = hit ? target.Health.ApplyDamage(damageAmount, out absorbed) : 0;
         float healing = hit ? attacker.GetComponent<BattleLifestealComponent>().HealFromDirectDamage(damage) : 0;
         action.Hit |= hit;
         action.Damage += damage;
         action.Healing += healing;
-        action.Hits.Add(new BattleHitResult { TargetSlot = target.SlotIndex, Hit = hit, Damage = damage, Healing = healing });
+        action.Hits.Add(new BattleHitResult { TargetSlot = target.SlotIndex, Hit = hit, Damage = damage, Healing = healing, ShieldDamage = absorbed });
     }
 
     public static double HitChance(float attackerSpeed, float defenderSpeed)
@@ -47,7 +70,7 @@ public static class BattleCombatComponentSystem
 
     public static float BasicDamage(int attack, int defense)
     {
-        return (float)(Math.Max(0, attack) * 100d / (100d + Math.Max(0, defense)));
+        return (float)Math.Max(0d, (double)attack - defense);
     }
 
     public static double HitChance(this BattleCombatComponent self, BattleCombatComponent target) => HitChance(self.Speed, target.Speed);

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Framework.ECS;
 
-public enum BattleActionKind { BasicAttack, Skill, Bleed }
+public enum BattleActionKind { BasicAttack, Skill, Bleed, Lightning }
 
 public sealed class BattleHitResult
 {
@@ -10,10 +10,12 @@ public sealed class BattleHitResult
     public bool Hit { get; internal set; }
     public float Damage { get; internal set; }
     public float Healing { get; internal set; }
+    public float ShieldDamage { get; internal set; }
 }
 
 public sealed class BattleActionResult
 {
+    public float ShieldGained { get; internal set; }
     public BattleActionKind Kind { get; internal set; }
     public int SkillId { get; internal set; }
     public string Message { get; internal set; }
@@ -51,7 +53,11 @@ public static class BattleRoundComponentSystem
     {
         var battle = self.GetParent<BattleEntity>();
         if (battle?.Battlefield != null)
-            foreach (var unit in battle.Battlefield.Units) unit.Skills.CancelPendingSkill();
+            foreach (var unit in battle.Battlefield.Units)
+            {
+                unit.Skills.CancelPendingSkill();
+                unit.GetComponent<BattleThundercloudComponent>()?.Dispose();
+            }
         self.ActionOrder.Clear();
         self.PendingActions.Clear();
         self.Random = null;
@@ -65,23 +71,23 @@ public static class BattleRoundComponentSystem
         double deltaSeconds = self.World.DeltaTime;
         while (deltaSeconds > 0 && self.Phase != BattlePhase.Finished)
         {
+            double remaining = self.Phase == BattlePhase.Preparation ? self.PreparationRemaining : self.ActionRemaining;
+            double elapsed = Math.Min(deltaSeconds, Math.Min(remaining, battle.NextCloudEvent()));
+            deltaSeconds -= elapsed;
+            if (self.Phase == BattlePhase.Preparation)
+                self.PreparationRemaining -= elapsed;
+            else
+                self.ActionRemaining -= elapsed;
+            battle.AdvanceClouds(elapsed);
+            if (self.Phase == BattlePhase.Finished) break;
             if (self.Phase == BattlePhase.Preparation)
             {
-                double elapsed = Math.Min(deltaSeconds, self.PreparationRemaining);
-                self.PreparationRemaining -= elapsed;
-                deltaSeconds -= elapsed;
                 if (self.PreparationRemaining <= 0) self.BeginCombat();
             }
-            else
+            else if (self.ActionRemaining <= 0)
             {
-                double elapsed = Math.Min(deltaSeconds, self.ActionRemaining);
-                self.ActionRemaining -= elapsed;
-                deltaSeconds -= elapsed;
-                if (self.ActionRemaining <= 0)
-                {
-                    self.ActionRemaining = ActionIntervalSeconds;
-                    self.ExecuteNextAction();
-                }
+                self.ActionRemaining = ActionIntervalSeconds;
+                self.ExecuteNextAction();
             }
         }
     }
@@ -126,6 +132,7 @@ public static class BattleRoundComponentSystem
         var result = new BattleActionResult { RoundNumber = self.RoundNumber, Unit = unit, FromSlot = unit.SlotIndex };
         unit.GetComponent<BattleMovementComponent>()?.TryMoveForward();
         result.ToSlot = unit.SlotIndex;
+        battle.GetComponent<BattleEnemyAIComponent>()?.TrySelectSkill(unit);
         if (unit.Skills == null || !unit.Skills.TryExecutePending(result))
             unit.GetComponent<BattleBasicAttackComponent>()?.TryAttack(result);
         unit.Action.HasActedThisRound = true;
@@ -158,9 +165,11 @@ public static class BattleRoundComponentSystem
         {
             unit.Skills.CancelPendingSkill();
             if (unit.Action != null) unit.Action.HasActedThisRound = false;
+            unit.GetComponent<BattleShieldComponent>()?.OnRoundStarted(self.RoundNumber);
+            unit.GetComponent<BattleSilenceComponent>()?.OnRoundStarted(self.RoundNumber);
             unit.GetComponent<BattleComboAttackComponent>()?.OnRoundStarted(self.RoundNumber);
             unit.GetComponent<BattleBleedComponent>()?.OnRoundStarted(self);
         }
-        battle.Battlefield.ResolveVictory();
+        if (!battle.Battlefield.ResolveVictory()) battle.GetComponent<BattleEnemyAIComponent>()?.PlanSkills();
     }
 }

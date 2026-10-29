@@ -15,6 +15,7 @@ public static class BattleBasicAttackComponentSystem
         BattleUnit attacker = self?.GetParent<BattleUnit>();
         BattleRoundComponent round = attacker?.GetParent<BattleEntity>()?.Round;
         if (round == null || attacker.Action == null || attacker.Action.HasActedThisRound) return;
+        if (attacker.IsSilenced()) { result.Message = "沉默中，无法普攻或释放技能"; return; }
         BattleUnit target = self.FindTargetInRange();
         if (target == null) return;
         int hits = attacker.GetComponent<BattleComboAttackComponent>().HitCount(round);

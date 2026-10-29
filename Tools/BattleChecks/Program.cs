@@ -123,8 +123,10 @@ class Program
         Near(BattleCombatComponentSystem.HitChance(50, 100), 0.5, "Speed difference divided by 100");
         Near(BattleCombatComponentSystem.HitChance(0, 100), 0, "100 speed disadvantage means zero hit chance");
         Near(BattleCombatComponentSystem.HitChance(0, 200), 0, "Negative hit chance clamped");
-        Near(BattleCombatComponentSystem.BasicDamage(100, 100), 50, "Armor reduction formula");
-        Near(BattleCombatComponentSystem.BasicDamage(100, 50), 200d / 3d, "Fractional damage retained");
+        Near(BattleCombatComponentSystem.BasicDamage(100, 100), 0, "Equal defense blocks all direct damage");
+        Near(BattleCombatComponentSystem.BasicDamage(100, 50), 50, "Defense subtracts directly from attack");
+        Near(BattleCombatComponentSystem.BasicDamage(100, 150), 0, "Higher defense never produces negative damage");
+        Near(BattleCombatComponentSystem.BasicDamage(100, 0), 100, "Zero defense takes full attack damage");
 
         var battle = BattleInitializationSystem.CreateBattle(Config(1, defense: 50));
         RemoveExcept(battle, 12, 18);
@@ -135,8 +137,8 @@ class Program
         BattleActionResult first = actions.Single();
         Check(first.FromSlot == 12 && first.ToSlot == 15 && first.Target.SlotIndex == 18, "Move before range check and attack");
         Check(first.Hit, "Equal-speed attack always hits");
-        Near(first.Damage, 200d / 3d, "Basic damage applied once");
-        Near(first.Target.CurrentHp, 1000 - 200d / 3d, "HP keeps fractional damage");
+        Near(first.Damage, 50, "Basic damage applied once after subtracting defense");
+        Near(first.Target.CurrentHp, 950, "HP loses attack minus defense");
         actions.AddRange(Tick(battle, 1, random));
         Check(actions.Count == 2 && turns.RoundNumber == 2, "Each of two surviving units gets one action");
 
@@ -346,6 +348,8 @@ class Program
         CheckDynamicCapabilities();
         LifecycleChecks.Run();
         SkillChecks.Run();
-        Console.WriteLine("PASS: preparation/action timing, repeated rounds, randomized order, movement/blocking/bounds, Manhattan range, hit formula, fractional armor damage, death and victory.");
+        ThunderChecks.Run();
+        EnemyAIChecks.Run();
+        Console.WriteLine("PASS: preparation/action timing, repeated rounds, randomized order, movement/blocking/bounds, Manhattan range, hit formula, subtractive defense damage, death and victory.");
     }
 }

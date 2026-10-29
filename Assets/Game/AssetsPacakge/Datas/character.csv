@@ -1,4 +1,5 @@
 编号,人物名称,职业,生命值,攻击力,防御力,速度,技能1的技能ID,技能2的技能ID,技能3的技能ID,战斗类型(战士1 法师2 刺客3),攻击距离
 int,string,string,int,int,int,float,int,int,int,int,float
 ID,name,job,hp,attack,defense,speed,skill1Id,skill2Id,skill3Id,battleType,attackRange
-1001,血狼人,战士,1200,100,100,88,100101,100102,100103,1,1
+1001,血狼人,战士,1000,100,20,88,100101,100102,100103,1,1
+1002,雷神,战士,1000,120,15,75,100201,100202,100203,1,1

@@ -22,17 +22,19 @@ public static class BattleSkillComponentSystem
         BattleEntity battle = unit?.GetParent<BattleEntity>();
         BattleSkillDefinition definition = self.GetDefinition(id);
         if (self == null || self.IsDisposed || !self.IsActive || unit == null || !unit.CanAct() || unit.HasActedThisRound ||
-            battle?.Round == null || battle.Round.Phase == BattlePhase.Finished || unit.Side != BattleSide.Ally)
+            battle?.Round == null || battle.Round.Phase == BattlePhase.Finished)
         { reason = "该单位当前不能选择技能，已行动的单位请在下回合选择"; return false; }
+        if (unit.IsSilenced()) { reason = "沉默中，本回合无法普攻或释放技能"; return false; }
         if (definition == null || (id != self.Skill1Id && id != self.Skill2Id && id != self.Skill3Id) ||
-            (id != BattleSkillDefinition.DoubleStrike && id != BattleSkillDefinition.Lifesteal && id != BattleSkillDefinition.ComboAttack))
+            (id != BattleSkillDefinition.DoubleStrike && id != BattleSkillDefinition.Lifesteal && id != BattleSkillDefinition.ComboAttack &&
+             id != BattleSkillDefinition.ThunderStrike && id != BattleSkillDefinition.ChainLightning && id != BattleSkillDefinition.Thundercloud))
         { reason = "技能配置不存在或暂不支持"; return false; }
         if (unit.Combat == null) { reason = "未挂载战斗属性组件"; return false; }
         if (id == BattleSkillDefinition.Lifesteal && unit.GetComponent<BattleLifestealComponent>()?.Stacks >= definition.Int(2))
         { reason = "吸血已达到最大层数"; return false; }
         BattleSkillPointComponent pool = battle.GetComponent<BattleSkillPointComponent>();
-        int refundable = self.ReservedPool == pool && self.ReservedRound == pool?.RoundNumber ? self.ReservedCost : 0;
-        if (pool == null || definition.PointCost > pool.Current + refundable)
+        int refundable = self.ReservedPool == pool && self.ReservedRound == pool?.RoundNumber && self.ReservedSide == unit.Side ? self.ReservedCost : 0;
+        if (pool == null || definition.PointCost > pool.CurrentFor(unit.Side) + refundable)
         { reason = "共享技能点不足"; return false; }
         reason = string.Empty;
         return true;
@@ -41,17 +43,18 @@ public static class BattleSkillComponentSystem
     public static bool TryQueue(this BattleSkillComponent self, int id, out string reason)
     {
         if (!self.CanQueue(id, out reason)) return false;
-        if (self.PendingSkillId == id) return true;
+        if (self.PendingSkillId == id && self.ReservedSide == self.GetParent<BattleUnit>().Side) return true;
         BattleUnit unit = self.GetParent<BattleUnit>();
         BattleEntity battle = unit.GetParent<BattleEntity>();
         BattleSkillDefinition definition = self.GetDefinition(id);
         self.CancelPendingSkill();
         BattleSkillPointComponent pool = battle.GetComponent<BattleSkillPointComponent>();
-        if (!pool.TrySpend(definition.PointCost)) { reason = "共享技能点不足"; return false; }
+        if (!pool.TrySpend(definition.PointCost, unit.Side)) { reason = "共享技能点不足"; return false; }
         self.PendingSkillId = id;
         self.ReservedCost = definition.PointCost;
         self.ReservedRound = battle.Round.RoundNumber;
         self.ReservedPool = pool;
+        self.ReservedSide = unit.Side;
         return true;
     }
 
@@ -59,9 +62,9 @@ public static class BattleSkillComponentSystem
     {
         if (self == null) return 0;
         BattleSkillPointComponent pool = self.ReservedPool;
-        int before = pool?.Current ?? 0;
-        pool.Refund(self.ReservedCost, self.ReservedRound);
-        int refunded = (pool?.Current ?? before) - before;
+        int before = pool.CurrentFor(self.ReservedSide);
+        pool.Refund(self.ReservedCost, self.ReservedRound, self.ReservedSide);
+        int refunded = pool.CurrentFor(self.ReservedSide) - before;
         ClearReservation(self);
         return refunded;
     }
@@ -73,14 +76,15 @@ public static class BattleSkillComponentSystem
         BattleEntity battle = unit?.GetParent<BattleEntity>();
         BattleSkillDefinition definition = self.GetDefinition(self.PendingSkillId);
         if (!self.CanQueue(self.PendingSkillId, out string reason) || battle.Round.Phase != BattlePhase.Combat ||
-            self.ReservedRound != battle.Round.RoundNumber || self.ReservedPool == null || self.ReservedPool != battle.GetComponent<BattleSkillPointComponent>() || self.ReservedPool.IsDisposed)
+            self.ReservedRound != battle.Round.RoundNumber || self.ReservedSide != unit.Side || self.ReservedPool == null || self.ReservedPool != battle.GetComponent<BattleSkillPointComponent>() || self.ReservedPool.IsDisposed)
         {
             int refund = self.CancelPendingSkill();
             action.Message = "技能未释放，退还 " + refund + " 点；" + reason;
             return false;
         }
         BattleUnit target = null;
-        if (definition.Id == BattleSkillDefinition.DoubleStrike)
+        if (definition.Id == BattleSkillDefinition.DoubleStrike || definition.Id == BattleSkillDefinition.ThunderStrike ||
+            definition.Id == BattleSkillDefinition.ChainLightning || definition.Id == BattleSkillDefinition.Thundercloud)
         {
             target = unit.Combat.FindTargetInRange(definition.Range);
             if (target == null)
@@ -120,6 +124,11 @@ public static class BattleSkillComponentSystem
                 combo.MinHits = definition.Int(2);
                 combo.MaxHits = definition.Int(3);
                 action.Message = "后 " + definition.Int(1) + " 回合普攻连击";
+                break;
+            case BattleSkillDefinition.ThunderStrike:
+            case BattleSkillDefinition.ChainLightning:
+            case BattleSkillDefinition.Thundercloud:
+                self.CastThunderSkill(definition, target, action);
                 break;
         }
         return true;

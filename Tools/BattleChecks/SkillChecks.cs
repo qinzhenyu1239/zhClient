@@ -14,8 +14,14 @@ static class SkillChecks
     static void Near(float actual, float expected, string message) => Check(Math.Abs(actual - expected) < 0.01, message + " actual=" + actual);
     static BattleEntity Create()
     {
-        var config = ExcelDataMgr.Instance.GetConfigData<character>("1001");
-        var records = ExcelDataMgr.Instance.GetConfigDatas<skill>(null);
+        // Fixed fixtures keep engine regression checks independent of designers' editable balance values.
+        var config = new character { ID = 1001, name = "血狼人", hp = 1200, attack = 100, defense = 20,
+            speed = 88, attackRange = 1, skill1Id = 100101, skill2Id = 100102, skill3Id = 100103, battleType = 1 };
+        var records = new[] {
+            new skill { ID = 100101, param1 = "2", param2 = "2", param3 = "10", skillRange = 1, skillPointCost = 1 },
+            new skill { ID = 100102, param1 = "10", param2 = "5", skillRange = 3, skillPointCost = 1 },
+            new skill { ID = 100103, param1 = "3", param2 = "1", param3 = "5", skillRange = 1, skillPointCost = 1 }
+        };
         return BattleInitializationSystem.CreateBattle(config, random: new FixedRandom(), skillConfigs: records);
     }
     static BattleActionResult Cast(BattleUnit unit, int id)
@@ -32,6 +38,7 @@ static class SkillChecks
     }
     public static void Run()
     {
+        int originalConfigHp = ExcelDataMgr.Instance.GetConfigData<character>("1001").hp;
         using var battle = Create();
         var unit = battle.GetUnitAt(15);
         var target = battle.GetUnitAt(18);
@@ -56,7 +63,7 @@ static class SkillChecks
         battle.Round.Phase = BattlePhase.Combat;
         var strike = Cast(unit, 100101);
         Check(strike.Hits.Count == 2 && strike.Target == target, "two hits on nearest target");
-        Near(strike.Damage, 100, "normal armor damage for both hits");
+        Near(strike.Damage, 160, "attack minus defense applied to both hits");
         var bleed = target.GetComponent<BattleBleedComponent>();
         Check(bleed.RemainingTicks == 2 && bleed.NextTickRound == 2, "bleed delayed two ticks");
         float hp = target.CurrentHp;
@@ -79,8 +86,8 @@ static class SkillChecks
         hp = unit.CurrentHp;
         var attack = new BattleActionResult();
         unit.GetComponent<BattleBasicAttackComponent>().TryAttack(attack);
-        Near(unit.CurrentHp, hp + 25, "50 percent lifesteal on actual direct damage");
-        Near(attack.Healing, 25, "healing result");
+        Near(unit.CurrentHp, hp + 40, "50 percent lifesteal on actual direct damage");
+        Near(attack.Healing, 40, "healing result");
         Cast(unit, 100103);
         var combo = unit.GetComponent<BattleComboAttackComponent>();
         Check(combo.FirstRound == 2 && combo.LastRound == 4 && combo.HitCount(battle.Round) == 1, "cast action grants following three rounds");
@@ -120,8 +127,8 @@ static class SkillChecks
         other.RemoveComponent<BattleSkillComponent>();
         Check(pool.Current == before + 1, "skill component removal refunds");
         Check(unit.GetComponent<BattleLifestealComponent>() != other.GetComponent<BattleLifestealComponent>(), "status component isolation");
-        Check(ExcelDataMgr.Instance.GetConfigData<character>("1001").hp == 1200, "runtime does not mutate source config");
-        Check(ExcelDataMgr.Instance.GetConfigDatas<skill>(null).All(s => s.skillPointCost == 1), "CSV costs imported");
+        Check(ExcelDataMgr.Instance.GetConfigData<character>("1001").hp == originalConfigHp, "runtime does not mutate source config");
+        Check(ExcelDataMgr.Instance.GetConfigDatas<skill>(null).All(s => s.skillPointCost >= 0), "CSV costs imported without assuming fixed balance values");
 
         using var scheduled = Create();
         var actor = scheduled.GetUnitAt(15);
@@ -133,7 +140,7 @@ static class SkillChecks
         Check(results.Count == 2 && results[0].Kind == BattleActionKind.Skill && results[1].Kind == BattleActionKind.Bleed, "action queued before next preparation bleed");
         Check(scheduled.Round.RoundNumber == 2 && scheduled.Round.Phase == BattlePhase.Preparation, "turn lifecycle integrates skill and DOT");
         Check(scheduled.GetComponent<BattleSkillPointComponent>().Current == 30, "next preparation resets points");
-        Near(victim.CurrentHp, 980, "scheduled two hits plus first bleed");
+        Near(victim.CurrentHp, 920, "scheduled two hits plus first bleed");
         // Refresh, rather than stack, and ensure DOT never triggers lifesteal.
         scheduled.Round.Phase = BattlePhase.Combat;
         Cast(actor, 100101);

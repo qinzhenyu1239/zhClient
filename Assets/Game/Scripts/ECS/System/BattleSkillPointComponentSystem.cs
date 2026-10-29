@@ -16,18 +16,27 @@ public static class BattleSkillPointComponentSystem
         if (self == null || self.IsDisposed) return;
         self.RoundNumber = roundNumber;
         self.Current = self.PointsPerRound;
+        self.EnemyCurrent = self.PointsPerRound;
     }
 
-    public static bool TrySpend(this BattleSkillPointComponent self, int amount)
+    public static int CurrentFor(this BattleSkillPointComponent self, BattleSide side)
     {
-        if (self == null || self.IsDisposed || amount < 0 || amount > self.Current) return false;
-        self.Current -= amount;
+        return self == null || self.IsDisposed ? 0 : side == BattleSide.Enemy ? self.EnemyCurrent : self.Current;
+    }
+
+    public static bool TrySpend(this BattleSkillPointComponent self, int amount, BattleSide side = BattleSide.Ally)
+    {
+        if (self == null || self.IsDisposed || amount < 0 || amount > self.CurrentFor(side)) return false;
+        if (side == BattleSide.Enemy) self.EnemyCurrent -= amount;
+        else self.Current -= amount;
         return true;
     }
 
-    public static void Refund(this BattleSkillPointComponent self, int amount, int reservedRound)
+    public static void Refund(this BattleSkillPointComponent self, int amount, int reservedRound, BattleSide side = BattleSide.Ally)
     {
         if (self == null || self.IsDisposed || self.RoundNumber != reservedRound || amount <= 0) return;
-        self.Current = Math.Min(self.PointsPerRound, self.Current + amount);
+        int refunded = Math.Min(self.PointsPerRound, self.CurrentFor(side) + amount);
+        if (side == BattleSide.Enemy) self.EnemyCurrent = refunded;
+        else self.Current = refunded;
     }
 }

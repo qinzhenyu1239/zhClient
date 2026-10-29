@@ -120,8 +120,11 @@ public class UIBattle_UICtrl : UICtrl
         }
         if (cancelSkillButton != null) cancelSkillButton.interactable = selectedUnit?.Skills?.PendingSkillId > 0;
         var pool = Battle?.GetComponent<BattleSkillPointComponent>();
-        View<Text>("Content/AutoFormationBtn/Text").text = "技能点 " + (pool == null ? "—" : pool.Current + "/" + pool.PointsPerRound);
-        View<Text>("Content/HintText").text = selectedUnit == null ? "点击我方人物选择技能 · 每回合重置30点" :
+        Text pointLabel = View<Text>("Content/AutoFormationBtn/Text");
+        pointLabel.fontSize = 15;
+        pointLabel.text = pool == null ? "双方技能点 —" :
+            "我方 " + pool.Current + "/" + pool.PointsPerRound + "\n敌方 " + pool.EnemyCurrent + "/" + pool.PointsPerRound;
+        View<Text>("Content/HintText").text = selectedUnit == null ? "点击我方人物选择技能 · 双方每回合各30点" :
             selectedUnit.HasActedThisRound ? "该人物本回合已行动，下回合可选择技能" : selectionMessage;
     }
 
@@ -132,7 +135,9 @@ public class UIBattle_UICtrl : UICtrl
             character config = ExcelDataMgr.Instance.GetConfigData<character>(BattleEntity.BloodWerewolfId.ToString());
             EcsRuntime.Instance.Init();
             var skills = ExcelDataMgr.Instance.GetConfigDatas<skill>(null);
-            BattleEntity battle = BattleInitializationSystem.CreateBattle(config, EcsRuntime.Instance.World, skillConfigs: skills);
+            character thunderGod = ExcelDataMgr.Instance.GetConfigData<character>(BattleEntity.ThunderGodId.ToString());
+            BattleEntity battle = BattleInitializationSystem.CreateRandomBattle(new[] { config, thunderGod },
+                EcsRuntime.Instance.World, skillConfigs: skills);
             Formation.ResetCombatEffects();
             Formation.ShowBattle(battle);
             Battle?.Dispose();
@@ -166,10 +171,11 @@ public class UIBattle_UICtrl : UICtrl
         string attack = result.Target == null ? "无范围内目标" :
             result.Hit ? "造成 " + result.Damage.ToString("0.##") + " 伤害" : "攻击未命中";
         if (result.Kind == BattleActionKind.Bleed) attack = "流血 " + result.Damage.ToString("0.##");
-        else if (result.Kind == BattleActionKind.Skill) attack = result.Message + (result.Target == null ? "" : "，" + attack);
+        else if (result.Kind == BattleActionKind.Skill || result.Kind == BattleActionKind.Lightning) attack = result.Message + (result.Target == null ? "" : "，" + attack);
         else if (!string.IsNullOrEmpty(result.Message)) attack = result.Message + "，" + attack;
         if (result.Hits.Count > 1) attack += "（" + result.Hits.Count + "次）";
         if (result.Healing > 0) attack += "，吸血 +" + result.Healing.ToString("0.##");
+        if (result.ShieldGained > 0) attack += "，护盾 +" + result.ShieldGained.ToString("0.##");
         if (selectedUnit == result.Unit) selectionMessage = "选择技能后立即扣点，替换该人物下一次普攻";
         lastAction = side + " " + result.Unit.UnitId + "：" + movement + "，" + attack;
         Debug.Log("[Battle] 第 " + result.RoundNumber + " 回合 · " + lastAction);

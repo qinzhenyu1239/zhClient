@@ -7,6 +7,23 @@ using UnityEngine.UI;
 public sealed class BattleUnitView : MonoBehaviour
 {
     public BattleUnit Unit { get; private set; }
+    private Sprite defaultPortrait;
+    private Sprite thunderPortrait;
+    private bool portraitsLoaded;
+
+    private void RefreshPortrait()
+    {
+        Transform node = transform.Find("Portrait");
+        if (node == null || !node.TryGetComponent(out Image image)) return;
+        if (!portraitsLoaded)
+        {
+            defaultPortrait = image.sprite;
+            thunderPortrait = ResMgr.Instance.LoadAssetSync<Sprite>("Images/ThunderGod.png");
+            portraitsLoaded = true;
+        }
+        image.sprite = Unit?.CharacterId == BattleEntity.ThunderGodId ? thunderPortrait : defaultPortrait;
+        image.preserveAspect = true;
+    }
 
 #if UNITY_EDITOR
     [Serializable]
@@ -19,6 +36,8 @@ public sealed class BattleUnitView : MonoBehaviour
         public BattleSide side;
         public int slotNumber, column, row;
         public float currentHp;
+        public float shield;
+        public int silenceFirstRound, silenceLastRound, cloudRemainingStrikes;
         public int maxHp, attack, defense, battleType;
         public float speed, attackRange;
         public bool alive, hasActed;
@@ -52,6 +71,11 @@ public sealed class BattleUnitView : MonoBehaviour
         runtimeData.column = unit.Position == null ? 0 : unit.SlotIndex / BattleEntity.RowCount + 1;
         runtimeData.row = unit.Position == null ? 0 : unit.SlotIndex % BattleEntity.RowCount + 1;
         runtimeData.currentHp = unit.CurrentHp;
+        runtimeData.shield = unit.GetComponent<BattleShieldComponent>()?.Amount ?? 0;
+        var silence = unit.GetComponent<BattleSilenceComponent>();
+        runtimeData.silenceFirstRound = silence?.FirstRound ?? 0;
+        runtimeData.silenceLastRound = silence?.LastRound ?? 0;
+        runtimeData.cloudRemainingStrikes = unit.GetComponent<BattleThundercloudComponent>()?.RemainingStrikes ?? 0;
         runtimeData.maxHp = unit.MaxHp;
         runtimeData.alive = unit.IsAlive;
         runtimeData.hasActed = unit.HasActedThisRound;
@@ -65,7 +89,7 @@ public sealed class BattleUnitView : MonoBehaviour
         runtimeData.skill3Id = unit.Skill3Id;
         runtimeData.pendingSkillId = unit.Skills?.PendingSkillId ?? 0;
         runtimeData.reservedSkillPoints = unit.Skills?.ReservedCost ?? 0;
-        runtimeData.sharedSkillPoints = unit.GetParent<BattleEntity>()?.GetComponent<BattleSkillPointComponent>()?.Current ?? 0;
+        runtimeData.sharedSkillPoints = unit.GetParent<BattleEntity>()?.GetComponent<BattleSkillPointComponent>().CurrentFor(unit.Side) ?? 0;
         var bleed = unit.GetComponent<BattleBleedComponent>();
         runtimeData.bleedTicks = bleed?.RemainingTicks ?? 0;
         runtimeData.nextBleedRound = bleed?.NextTickRound ?? 0;
@@ -99,6 +123,7 @@ public sealed class BattleUnitView : MonoBehaviour
         RefreshInspectorData();
 #endif
         Render(transform, Unit);
+        if (Unit != null) RefreshPortrait();
     }
 
     internal static void ShowEmptySlot(GameObject slot)
@@ -127,6 +152,12 @@ public sealed class BattleUnitView : MonoBehaviour
         if (nameNode != null && nameNode.TryGetComponent(out Text name))
         {
             name.text = occupied ? unit.Name : string.Empty;
+            if (occupied)
+            {
+                float shield = unit.GetComponent<BattleShieldComponent>()?.Amount ?? 0;
+                if (shield > 0) name.text += " 盾" + shield.ToString("0.#");
+                if (unit.IsSilenced()) name.text += " 禁攻";
+            }
             name.color = accent;
         }
         Transform fillNode = root.Find("HealthBar/Fill");

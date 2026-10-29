@@ -34,12 +34,14 @@ public sealed class BattleCombatEffects : MonoBehaviour
         {
             if (hit.TargetSlot < 0 || hit.TargetSlot >= slots.Count) continue;
             Transform targetSlot = slots[hit.TargetSlot].transform;
-            if (action.Kind != BattleActionKind.Bleed) PlayLunge(attackerSlot, targetSlot);
+            if (action.Kind != BattleActionKind.Bleed && action.Kind != BattleActionKind.Lightning) PlayLunge(attackerSlot, targetSlot);
             Transform node = targetSlot.Find("Portrait");
             Image image = node != null ? node.GetComponent<Image>() : null;
             Vector2 position = effectsLayer.InverseTransformPoint(node != null ? node.position : targetSlot.position);
             StartCoroutine(ShowImpact(hit.Hit, hit.Damage, position, image, font,
-                action.Kind == BattleActionKind.Bleed ? "流血 -" + hit.Damage.ToString("0.##") : null));
+                action.Kind == BattleActionKind.Bleed ? "流血 -" + hit.Damage.ToString("0.##") :
+                action.Kind == BattleActionKind.Lightning ? "雷击 -" + hit.Damage.ToString("0.##") :
+                hit.ShieldDamage > 0 ? "护盾吸收 " + hit.ShieldDamage.ToString("0.##") + " / 扣血 " + hit.Damage.ToString("0.##") : null));
             if (hit.Healing > 0)
                 StartCoroutine(ShowImpact(true, 0, effectsLayer.InverseTransformPoint(attackerSlot.position), null, font, "+" + hit.Healing.ToString("0.##"), true));
             yield return new WaitForSeconds(0.15f);

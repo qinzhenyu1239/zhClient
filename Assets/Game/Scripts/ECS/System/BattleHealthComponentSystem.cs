@@ -14,10 +14,18 @@ public static class BattleHealthComponentSystem
 
     public static float ApplyDamage(this BattleHealthComponent self, float damage)
     {
+        return self.ApplyDamage(damage, out _);
+    }
+
+    public static float ApplyDamage(this BattleHealthComponent self, float damage, out float absorbed)
+    {
+        absorbed = 0;
         if (self == null || self.IsDisposed || self.CurrentHp <= 0) return 0;
-        float applied = Math.Min(self.CurrentHp, Math.Max(0f, damage));
-        self.CurrentHp -= applied;
         BattleUnit target = self.GetParent<BattleUnit>();
+        damage = Math.Max(0f, damage);
+        absorbed = target?.GetComponent<BattleShieldComponent>().Absorb(damage) ?? 0;
+        float applied = Math.Min(self.CurrentHp, damage - absorbed);
+        self.CurrentHp -= applied;
         if (self.CurrentHp <= 0) target?.Skills.CancelPendingSkill();
         BattlefieldComponent field = target?.GetParent<BattleEntity>()?.Battlefield;
         if (self.CurrentHp <= 0 && field != null && target.Position != null && field.GetUnitAt(target.SlotIndex) == target)
