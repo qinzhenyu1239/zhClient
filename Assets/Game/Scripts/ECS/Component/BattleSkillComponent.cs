@@ -10,6 +10,7 @@ public sealed class BattleSkillComponent : Entity, IDestroy
     public int Skill2Id { get; internal set; }
     public int Skill3Id { get; internal set; }
     internal Dictionary<int, BattleSkillDefinition> Definitions { get; } = new Dictionary<int, BattleSkillDefinition>();
+    internal Dictionary<int, long> CooldownReadyRounds { get; } = new Dictionary<int, long>();
     public int PendingSkillId { get; internal set; }
     public int ReservedCost { get; internal set; }
     internal int ReservedRound { get; set; }
@@ -26,21 +27,26 @@ public sealed class BattleSkillDefinition
     public const int ThunderStrike = 100201;
     public const int ChainLightning = 100202;
     public const int Thundercloud = 100203;
+    public const int MoonCleave = 100301;
+    public const int MoonBlink = 100302;
+    public const int MoonShower = 100303;
     public int Id { get; }
     public string Description { get; }
     public float Range { get; }
     public int PointCost { get; }
+    public int CooldownRounds { get; }
     private readonly float[] parameters;
 
     public BattleSkillDefinition(skill source)
     {
         if (source == null) throw new ArgumentNullException(nameof(source));
-        if (source.skillPointCost < 0 || float.IsNaN(source.skillRange) || float.IsInfinity(source.skillRange) || source.skillRange < 0)
-            throw new ArgumentException("Invalid skill cost or range: " + source.ID);
+        if (source.skillPointCost < 0 || source.skillCd < 0 || float.IsNaN(source.skillRange) || float.IsInfinity(source.skillRange) || source.skillRange < 0)
+            throw new ArgumentException("Invalid skill cost, cooldown or range: " + source.ID);
         Id = source.ID;
         Description = source.description ?? string.Empty;
         Range = source.skillRange;
         PointCost = source.skillPointCost;
+        CooldownRounds = source.skillCd;
         string[] raw = { source.param1, source.param2, source.param3, source.param4, source.param5, source.param6 };
         parameters = new float[raw.Length];
         for (int i = 0; i < raw.Length; i++)
@@ -61,6 +67,11 @@ public sealed class BattleSkillDefinition
             case ThunderStrike: Int(2); break;
             case ChainLightning: Int(1); Int(3); break;
             case Thundercloud: Int(1); Int(4); break;
+            case MoonCleave:
+            case MoonBlink: Value(1); break;
+            case MoonShower:
+                MoonTickCount(); Int(3); Value(4); Int(5);
+                break;
         }
     }
 
@@ -73,6 +84,21 @@ public sealed class BattleSkillDefinition
     }
 
     public float Percent(int index) => parameters[index - 1] / 100f;
+
+    public float Value(int index)
+    {
+        float value = parameters[index - 1];
+        if (value <= 0) throw new ArgumentException("Expected positive skill parameter " + index + ": " + Id);
+        return value;
+    }
+
+    public int MoonTickCount()
+    {
+        double ticks = (double)Value(1) / Value(2);
+        if (ticks < 1 || ticks > 10000 || Math.Abs(ticks - Math.Round(ticks)) > 0.0001)
+            throw new ArgumentException("Moon shower duration must be a whole number of intervals.");
+        return (int)Math.Round(ticks);
+    }
 
     public string FormatDescription()
     {

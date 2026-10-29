@@ -9,24 +9,40 @@ public static class BattleInitializationSystem
     {
         if (candidates == null || candidates.Count == 0)
             throw new ArgumentException("At least one formation character is required.", nameof(candidates));
+        var heroes = new List<character>();
+        var heroIds = new HashSet<int>();
         foreach (var candidate in candidates)
+        {
             if (candidate == null || candidate.hp <= 0)
                 throw new ArgumentException("Formation characters must have positive HP.", nameof(candidates));
+            if (heroIds.Add(candidate.ID)) heroes.Add(candidate);
+        }
+        if (heroes.Count > BattleEntity.UnitsPerSide)
+            throw new ArgumentException("Too many unique heroes for the formation.", nameof(candidates));
         random = random ?? new Random();
         var lineup = new Dictionary<int, character>();
-        for (int slot = BattleEntity.UnitsPerSide; slot < BattleEntity.SlotCount; slot++)
-            lineup.Add(slot, candidates[random.Next(candidates.Count)]);
-        return CreateBattle(candidates[0], world, random, skillConfigs, lineup);
+        foreach (int start in new[] { BattleEntity.AllyStartSlot, BattleEntity.EnemyStartSlot })
+        {
+            var empty = new List<int>();
+            for (int i = 0; i < BattleEntity.UnitsPerSide; i++) empty.Add(start + i);
+            foreach (character hero in heroes)
+            {
+                int index = random.Next(empty.Count);
+                lineup.Add(empty[index], hero);
+                empty.RemoveAt(index);
+            }
+        }
+        return CreateBattle(heroes[0], world, random, skillConfigs, lineup, fillEmptySlots: false);
     }
 
     public static BattleEntity CreateBattle(character config, EcsWorld world = null, Random random = null, IEnumerable<skill> skillConfigs = null,
-        IReadOnlyDictionary<int, character> lineup = null)
+        IReadOnlyDictionary<int, character> lineup = null, bool fillEmptySlots = true)
     {
         if (config == null) throw new ArgumentNullException(nameof(config));
         if (config.hp <= 0) throw new ArgumentException("Expected a character with positive HP.", nameof(config));
         if (lineup != null)
             foreach (var entry in lineup)
-                if (entry.Key < BattleEntity.UnitsPerSide || entry.Key >= BattleEntity.SlotCount || entry.Value == null || entry.Value.hp <= 0)
+                if (entry.Key < BattleEntity.AllyStartSlot || entry.Key >= BattleEntity.FormationEndSlot || entry.Value == null || entry.Value.hp <= 0)
                     throw new ArgumentException("Invalid formation character or slot.", nameof(lineup));
         var definitions = new Dictionary<int, BattleSkillDefinition>();
         if (skillConfigs != null)
@@ -46,15 +62,16 @@ public static class BattleInitializationSystem
             BattleRoundComponent round = battle.AddComponent<BattleRoundComponent>();
             round.Random = random ?? new Random();
             battle.AddComponent<BattleSkillPointComponent>();
-            for (int slotIndex = BattleEntity.UnitsPerSide; slotIndex < BattleEntity.SlotCount; slotIndex++)
+            for (int slotIndex = BattleEntity.AllyStartSlot; slotIndex < BattleEntity.FormationEndSlot; slotIndex++)
             {
+                if (!fillEmptySlots && (lineup == null || !lineup.ContainsKey(slotIndex))) continue;
                 character record = lineup != null && lineup.TryGetValue(slotIndex, out character selected) ? selected : config;
                 BattleUnit unit = battle.AddChild<BattleUnit>();
                 BattleIdentityComponent identity = unit.AddComponent<BattleIdentityComponent>();
                 identity.UnitId = slotIndex + 1;
                 identity.CharacterId = record.ID;
                 identity.Name = record.name;
-                identity.Side = slotIndex < BattleEntity.UnitsPerSide * 2 ? BattleSide.Ally : BattleSide.Enemy;
+                identity.Side = slotIndex < BattleEntity.EnemyStartSlot ? BattleSide.Ally : BattleSide.Enemy;
                 unit.AddComponent<BattlePositionComponent>();
                 BattleHealthComponent health = unit.AddComponent<BattleHealthComponent>();
                 health.MaxHp = record.hp;
@@ -65,6 +82,7 @@ public static class BattleInitializationSystem
                 combat.Speed = record.speed;
                 combat.AttackRange = record.attackRange;
                 combat.BattleType = record.battleType;
+                if (record.battleType == 3) unit.AddComponent<BattleAssassinComponent>();
                 BattleSkillComponent skills = unit.AddComponent<BattleSkillComponent>();
                 skills.Skill1Id = record.skill1Id;
                 skills.Skill2Id = record.skill2Id;

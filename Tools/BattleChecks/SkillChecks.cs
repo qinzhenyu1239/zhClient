@@ -40,8 +40,8 @@ static class SkillChecks
     {
         int originalConfigHp = ExcelDataMgr.Instance.GetConfigData<character>("1001").hp;
         using var battle = Create();
-        var unit = battle.GetUnitAt(15);
-        var target = battle.GetUnitAt(18);
+        var unit = battle.GetUnitAt(9);
+        var target = battle.GetUnitAt(12);
         var pool = battle.GetComponent<BattleSkillPointComponent>();
         Check(pool.Current == 30 && pool.PointsPerRound == 30, "30 points per round");
         Check(unit.Skills.TryQueue(100101, out _), "queue in preparation");
@@ -90,7 +90,7 @@ static class SkillChecks
         Near(attack.Healing, 40, "healing result");
         Cast(unit, 100103);
         var combo = unit.GetComponent<BattleComboAttackComponent>();
-        Check(combo.FirstRound == 2 && combo.LastRound == 4 && combo.HitCount(battle.Round) == 1, "cast action grants following three rounds");
+        Check(combo.FirstRound == 2 && combo.RemainingAttacks == 3 && combo.HitCount(battle.Round) == 1, "cast grants next three attacks starting next round");
         for (int round = 2; round <= 4; round++)
         {
             battle.Round.RoundNumber = round;
@@ -102,8 +102,13 @@ static class SkillChecks
         Check(comboAttack.Hits.Count == 5 && comboAttack.Target == target, "combo executes five hits on the same target");
         Check(pool.Current == comboPoints, "enhanced basic hits do not spend more points");
         battle.Round.RoundNumber = 5;
-        combo.OnRoundStarted(5);
-        Check(unit.GetComponent<BattleComboAttackComponent>() == null, "combo expires after third round");
+        Check(combo.RemainingAttacks == 2, "elapsed rounds do not consume remaining attacks");
+        for (int i = 0; i < 2; i++)
+        {
+            target.Health.CurrentHp = target.MaxHp;
+            unit.GetComponent<BattleBasicAttackComponent>().TryAttack(new BattleActionResult());
+        }
+        Check(unit.GetComponent<BattleComboAttackComponent>() == null, "combo expires after third actual attack");
         battle.Round.RoundNumber = 1;
         pool.BeginRound(1);
         target.Health.CurrentHp = 30;
@@ -112,7 +117,7 @@ static class SkillChecks
         Check(strike.Hits.Count == 1 && !target.IsAlive, "stop on death without retargeting");
         Near(strike.Healing, 15, "overkill heals actual lost HP only");
         Check(target.GetComponent<BattleBleedComponent>() == null, "dead target gets no bleed");
-        var rear = battle.GetUnitAt(9);
+        var rear = battle.GetUnitAt(3);
         rear.Skills.TryQueue(100101, out _);
         int before = pool.Current;
         var failed = new BattleActionResult();
@@ -121,7 +126,7 @@ static class SkillChecks
         before = pool.Current;
         rear.Health.ApplyDamage(rear.MaxHp);
         Check(pool.Current == before + 1, "death refunds pending command");
-        var other = battle.GetUnitAt(10);
+        var other = battle.GetUnitAt(4);
         other.Skills.TryQueue(100102, out _);
         before = pool.Current;
         other.RemoveComponent<BattleSkillComponent>();
@@ -131,8 +136,8 @@ static class SkillChecks
         Check(ExcelDataMgr.Instance.GetConfigDatas<skill>(null).All(s => s.skillPointCost >= 0), "CSV costs imported without assuming fixed balance values");
 
         using var scheduled = Create();
-        var actor = scheduled.GetUnitAt(15);
-        var victim = scheduled.GetUnitAt(18);
+        var actor = scheduled.GetUnitAt(9);
+        var victim = scheduled.GetUnitAt(12);
         // Freeze the other units, so one second executes exactly this actor and starts round two.
         foreach (var u in scheduled.Battlefield.Units) if (u != actor) u.RemoveComponent<BattleActionComponent>();
         actor.Skills.TryQueue(100101, out _);
@@ -161,14 +166,14 @@ static class SkillChecks
         Check(victim.GetComponent<BattleBleedComponent>().RemainingTicks == 1, "all misses do not refresh bleed");
         using var separate = Create();
         Check(separate.GetComponent<BattleSkillPointComponent>().Current == 30, "separate battle pool isolation");
-        var separateActor = separate.GetUnitAt(15);
+        var separateActor = separate.GetUnitAt(9);
         separateActor.Action.HasActedThisRound = true;
         Check(!separateActor.Skills.TryQueue(100101, out _), "acted unit cannot buy an extra action");
         separateActor.Action.HasActedThisRound = false;
         separateActor.Skills.TryQueue(100101, out _);
         int reserved = separate.GetComponent<BattleSkillPointComponent>().Current;
-        separateActor.Position.TryPlace(12);
-        Check(separateActor.SlotIndex == 15, "occupied destination is rejected");
+        separateActor.Position.TryPlace(6);
+        Check(separateActor.SlotIndex == 9, "occupied destination is rejected");
         separateActor.RemoveComponent<BattleCombatComponent>();
         separate.Round.Phase = BattlePhase.Combat;
         Check(!separateActor.Skills.TryExecutePending(new BattleActionResult()) && separate.GetComponent<BattleSkillPointComponent>().Current == reserved + 1, "missing combat data refunds safely");

@@ -18,7 +18,9 @@ public static class BattleBasicAttackComponentSystem
         if (attacker.IsSilenced()) { result.Message = "沉默中，无法普攻或释放技能"; return; }
         BattleUnit target = self.FindTargetInRange();
         if (target == null) return;
-        int hits = attacker.GetComponent<BattleComboAttackComponent>().HitCount(round);
+        var combo = attacker.GetComponent<BattleComboAttackComponent>();
+        int hits = combo.HitCount(round);
         for (int i = 0; i < hits && target.IsAlive; i++) attacker.Combat.ResolveDirectHit(target, result);
+        combo.ConsumeAttack(round);
     }
 }

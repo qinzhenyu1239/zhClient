@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Framework.ECS;
 
-public enum BattleActionKind { BasicAttack, Skill, Bleed, Lightning }
+public enum BattleActionKind { BasicAttack, Skill, Bleed, Lightning, Moonlight }
 
 public sealed class BattleHitResult
 {
@@ -18,6 +18,8 @@ public sealed class BattleActionResult
     public float ShieldGained { get; internal set; }
     public BattleActionKind Kind { get; internal set; }
     public int SkillId { get; internal set; }
+    public List<int> MoonMarkedSlots { get; } = new List<int>();
+    public int MoonExplosions { get; internal set; }
     public string Message { get; internal set; }
     public float Healing { get; internal set; }
     public List<BattleHitResult> Hits { get; } = new List<BattleHitResult>();
@@ -57,6 +59,7 @@ public static class BattleRoundComponentSystem
             {
                 unit.Skills.CancelPendingSkill();
                 unit.GetComponent<BattleThundercloudComponent>()?.Dispose();
+                unit.GetComponent<BattleMoonShowerComponent>()?.Dispose();
             }
         self.ActionOrder.Clear();
         self.PendingActions.Clear();
@@ -72,13 +75,14 @@ public static class BattleRoundComponentSystem
         while (deltaSeconds > 0 && self.Phase != BattlePhase.Finished)
         {
             double remaining = self.Phase == BattlePhase.Preparation ? self.PreparationRemaining : self.ActionRemaining;
-            double elapsed = Math.Min(deltaSeconds, Math.Min(remaining, battle.NextCloudEvent()));
+            double elapsed = Math.Min(deltaSeconds, Math.Min(remaining, Math.Min(battle.NextCloudEvent(), battle.NextMoonEvent())));
             deltaSeconds -= elapsed;
             if (self.Phase == BattlePhase.Preparation)
                 self.PreparationRemaining -= elapsed;
             else
                 self.ActionRemaining -= elapsed;
             battle.AdvanceClouds(elapsed);
+            if (self.Phase != BattlePhase.Finished) battle.AdvanceMoonShowers(elapsed);
             if (self.Phase == BattlePhase.Finished) break;
             if (self.Phase == BattlePhase.Preparation)
             {
@@ -130,7 +134,8 @@ public static class BattleRoundComponentSystem
         if (self.NextUnit >= self.ActionOrder.Count) { self.BeginNextRound(); return; }
         BattleUnit unit = self.ActionOrder[self.NextUnit++];
         var result = new BattleActionResult { RoundNumber = self.RoundNumber, Unit = unit, FromSlot = unit.SlotIndex };
-        unit.GetComponent<BattleMovementComponent>()?.TryMoveForward();
+        if (unit.FindAdjacentEnemy() == null)
+            unit.GetComponent<BattleMovementComponent>()?.TryMoveForward();
         result.ToSlot = unit.SlotIndex;
         battle.GetComponent<BattleEnemyAIComponent>()?.TrySelectSkill(unit);
         if (unit.Skills == null || !unit.Skills.TryExecutePending(result))
@@ -146,7 +151,8 @@ public static class BattleRoundComponentSystem
 
     private static void SkipUnavailable(this BattleRoundComponent self)
     {
-        while (self.NextUnit < self.ActionOrder.Count && !self.ActionOrder[self.NextUnit].CanAct())
+        while (self.NextUnit < self.ActionOrder.Count &&
+            (!self.ActionOrder[self.NextUnit].CanAct() || self.ActionOrder[self.NextUnit].HasActedThisRound))
         {
             self.ActionOrder[self.NextUnit].Skills.CancelPendingSkill();
             self.NextUnit++;
@@ -167,7 +173,6 @@ public static class BattleRoundComponentSystem
             if (unit.Action != null) unit.Action.HasActedThisRound = false;
             unit.GetComponent<BattleShieldComponent>()?.OnRoundStarted(self.RoundNumber);
             unit.GetComponent<BattleSilenceComponent>()?.OnRoundStarted(self.RoundNumber);
-            unit.GetComponent<BattleComboAttackComponent>()?.OnRoundStarted(self.RoundNumber);
             unit.GetComponent<BattleBleedComponent>()?.OnRoundStarted(self);
         }
         if (!battle.Battlefield.ResolveVictory()) battle.GetComponent<BattleEnemyAIComponent>()?.PlanSkills();

@@ -26,8 +26,8 @@ static class EnemyAIChecks
     {
         using var battle = Create();
         var pool = battle.GetComponent<BattleSkillPointComponent>();
-        var enemy = battle.GetUnitAt(18);
-        var ally = battle.GetUnitAt(15);
+        var enemy = battle.GetUnitAt(12);
+        var ally = battle.GetUnitAt(9);
         Check(pool.PointsPerRound == 30 && pool.Current == 30 && pool.EnemyCurrent == 21, "separate 30-point budgets and nine AI reservations");
         Check(battle.Battlefield.Units.Where(unit => unit.Side == BattleSide.Enemy).All(unit => unit.Skills.PendingSkillId == BattleSkillDefinition.Lifesteal),
             "AI preselects a usable skill for every enemy");
@@ -54,7 +54,7 @@ static class EnemyAIChecks
         using var battle = Create();
         ClearEnemyPlans(battle);
         var ai = battle.GetComponent<BattleEnemyAIComponent>();
-        var enemy = battle.GetUnitAt(18);
+        var enemy = battle.GetUnitAt(12);
         var silence = enemy.AddComponent<BattleSilenceComponent>();
         silence.FirstRound = silence.LastRound = 1;
         ai.TrySelectSkill(enemy);
@@ -74,14 +74,14 @@ static class EnemyAIChecks
         steal.Stacks = steal.MaxStacks = 5;
         ai.TrySelectSkill(enemy);
         Check(enemy.Skills.PendingSkillId == 0, "capped buff is not selected");
-        ai.TrySelectSkill(battle.GetUnitAt(15));
-        Check(battle.GetUnitAt(15).Skills.PendingSkillId == 0, "AI never chooses for the player");
+        ai.TrySelectSkill(battle.GetUnitAt(9));
+        Check(battle.GetUnitAt(9).Skills.PendingSkillId == 0, "AI never chooses for the player");
     }
     static void CheckScheduledActions()
     {
         using var battle = Create();
-        var enemy = battle.GetUnitAt(18);
-        var ally = battle.GetUnitAt(15);
+        var enemy = battle.GetUnitAt(12);
+        var ally = battle.GetUnitAt(9);
         foreach (var unit in battle.Battlefield.Units)
             if (unit != enemy && unit != ally) unit.RemoveComponent<BattleActionComponent>();
         battle.World.Update(17);
@@ -95,8 +95,8 @@ static class EnemyAIChecks
             "next preparation resets both pools then AI reserves only for eligible enemies");
         using var fallback = Create();
         ClearEnemyPlans(fallback);
-        var fallbackEnemy = fallback.GetUnitAt(18);
-        var fallbackAlly = fallback.GetUnitAt(15);
+        var fallbackEnemy = fallback.GetUnitAt(12);
+        var fallbackAlly = fallback.GetUnitAt(9);
         foreach (var unit in fallback.Battlefield.Units)
             if (unit != fallbackEnemy && unit != fallbackAlly) unit.RemoveComponent<BattleActionComponent>();
         fallback.GetComponent<BattleSkillPointComponent>().TrySpend(30, BattleSide.Enemy);
@@ -117,9 +117,9 @@ static class EnemyAIChecks
         Check(pool.EnemyCurrent == 0 && pool.Current == 30 &&
             battle.Battlefield.Units.Count(unit => unit.Side == BattleSide.Enemy && unit.Skills.PendingSkillId != 0) == 6,
             "AI respects 30-point cap with five-point skills");
-        var enemy = battle.GetUnitAt(18);
+        var enemy = battle.GetUnitAt(12);
         foreach (var unit in battle.Battlefield.Units)
-            if (unit != enemy && unit.SlotIndex != 15) unit.RemoveComponent<BattleActionComponent>();
+            if (unit != enemy && unit.SlotIndex != 9) unit.RemoveComponent<BattleActionComponent>();
         battle.World.Update(21);
         var actions = battle.Round.DrainActions();
         Check(actions.Any(action => action.Unit == enemy && action.Kind == BattleActionKind.Skill && action.SkillId == BattleSkillDefinition.Thundercloud) &&

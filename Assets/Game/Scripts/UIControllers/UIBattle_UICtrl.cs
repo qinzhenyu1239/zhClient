@@ -116,7 +116,9 @@ public class UIBattle_UICtrl : UICtrl
             BattleSkillDefinition definition = skills.GetDefinition(id);
             skillButtons[i].interactable = skills != null && skills.CanQueue(id, out _);
             skillButtons[i].GetComponentInChildren<Text>().text =
-                (skills?.PendingSkillId == id && id != 0 ? "✓ " : "") + "技能" + (i + 1) + " · " + (definition?.PointCost.ToString() ?? "—");
+                (skills?.PendingSkillId == id && id != 0 ? "✓ " : "") + "技能" + (i + 1) + " · " + (definition?.PointCost.ToString() ?? "—") +
+                (definition == null ? "" : "\n" + (skills.CooldownRemaining(id) > 0
+                    ? "冷却 " + skills.CooldownRemaining(id) + " 回合" : "CD " + definition.CooldownRounds + " 回合"));
         }
         if (cancelSkillButton != null) cancelSkillButton.interactable = selectedUnit?.Skills?.PendingSkillId > 0;
         var pool = Battle?.GetComponent<BattleSkillPointComponent>();
@@ -136,7 +138,8 @@ public class UIBattle_UICtrl : UICtrl
             EcsRuntime.Instance.Init();
             var skills = ExcelDataMgr.Instance.GetConfigDatas<skill>(null);
             character thunderGod = ExcelDataMgr.Instance.GetConfigData<character>(BattleEntity.ThunderGodId.ToString());
-            BattleEntity battle = BattleInitializationSystem.CreateRandomBattle(new[] { config, thunderGod },
+            character moonGoddess = ExcelDataMgr.Instance.GetConfigData<character>(BattleEntity.MoonlightGoddessId.ToString());
+            BattleEntity battle = BattleInitializationSystem.CreateRandomBattle(new[] { config, thunderGod, moonGoddess },
                 EcsRuntime.Instance.World, skillConfigs: skills);
             Formation.ResetCombatEffects();
             Formation.ShowBattle(battle);
@@ -167,13 +170,15 @@ public class UIBattle_UICtrl : UICtrl
     private void OnActionResolved(BattleActionResult result)
     {
         string side = result.Unit.Side == BattleSide.Ally ? "我方" : "敌方";
-        string movement = result.FromSlot == result.ToSlot ? "原地" : "前进一格";
+        string movement = result.FromSlot == result.ToSlot ? "原地" : "移动至第" + (result.ToSlot + 1) + "格";
         string attack = result.Target == null ? "无范围内目标" :
             result.Hit ? "造成 " + result.Damage.ToString("0.##") + " 伤害" : "攻击未命中";
         if (result.Kind == BattleActionKind.Bleed) attack = "流血 " + result.Damage.ToString("0.##");
-        else if (result.Kind == BattleActionKind.Skill || result.Kind == BattleActionKind.Lightning) attack = result.Message + (result.Target == null ? "" : "，" + attack);
+        else if (result.Kind == BattleActionKind.Skill || result.Kind == BattleActionKind.Lightning || result.Kind == BattleActionKind.Moonlight) attack = result.Message + (result.Target == null ? "" : "，" + attack);
         else if (!string.IsNullOrEmpty(result.Message)) attack = result.Message + "，" + attack;
         if (result.Hits.Count > 1) attack += "（" + result.Hits.Count + "次）";
+        if (result.MoonMarkedSlots.Count > 0) attack += "，月印 +" + result.MoonMarkedSlots.Count;
+        if (result.MoonExplosions > 0) attack += "，月印引爆 " + result.MoonExplosions + "次";
         if (result.Healing > 0) attack += "，吸血 +" + result.Healing.ToString("0.##");
         if (result.ShieldGained > 0) attack += "，护盾 +" + result.ShieldGained.ToString("0.##");
         if (selectedUnit == result.Unit) selectionMessage = "选择技能后立即扣点，替换该人物下一次普攻";

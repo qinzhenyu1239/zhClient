@@ -505,6 +505,14 @@
         },
         {
             "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Images/MoonlightGoddess.png",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 4,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
             "AssetPath": "Assets/Game/AssetsPacakge/Images/ThunderGod.png",
             "AssetGUID": "",
             "AssetTags": [],

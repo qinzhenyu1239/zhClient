@@ -77,7 +77,7 @@ class Program
         int bigStepActions = Tick(bigStep, 66, new Random(42)).Count;
         Check(bigStep.Round.RoundNumber == turns.RoundNumber && bigStep.Round.Phase == turns.Phase && bigStepActions == actions.Count, "Frame stalls preserve elapsed time");
         var deadAtStart = BattleInitializationSystem.CreateBattle(Config(0));
-        ApplyDamage(deadAtStart, deadAtStart.GetUnitAt(9), 1000);
+        ApplyDamage(deadAtStart, deadAtStart.GetUnitAt(3), 1000);
         IReadOnlyList<BattleActionResult> skipActions = Tick(deadAtStart, 32, new Random(42));
         Check(skipActions.All(result => result.Unit.IsAlive), "Dead units cannot act");
         Check(skipActions.Count == 17 && deadAtStart.Round.RoundNumber == 2, "Dead units do not consume action seconds");
@@ -86,11 +86,12 @@ class Program
     static void CheckMovementAndRange()
     {
         var battle = BattleInitializationSystem.CreateBattle(Config());
-        BattleUnit ally = battle.GetUnitAt(15);
+        BattleUnit ally = battle.GetUnitAt(9);
         Check(!TryMove(battle, ally), "Enemy blocks forward movement");
-        Check(!TryMove(battle, battle.GetUnitAt(9)), "Ally blocks forward movement");
-        foreach (int index in new[] { 18, 21, 24 }) ApplyDamage(battle, battle.GetUnitAt(index), 1000);
-        foreach (int destination in new[] { 18, 21, 24 })
+        Check(!TryMove(battle, battle.GetUnitAt(3)), "Ally blocks forward movement");
+        foreach (BattleUnit unit in battle.Battlefield.Units.Where(unit => unit.Side == BattleSide.Enemy))
+            ApplyDamage(battle, unit, 1000);
+        foreach (int destination in new[] { 12, 15, 18, 21 })
         {
             int origin = ally.SlotIndex;
             Check(TryMove(battle, ally) && ally.SlotIndex == destination, "Allies advance right one column");
@@ -99,21 +100,79 @@ class Program
         Check(!TryMove(battle, ally), "Cannot leave right edge");
 
         battle = BattleInitializationSystem.CreateBattle(Config());
-        BattleUnit enemy = battle.GetUnitAt(18);
+        BattleUnit enemy = battle.GetUnitAt(12);
         Check(!TryMove(battle, enemy), "Enemy cannot cross occupied front cell");
-        foreach (int index in new[] { 15, 12, 9 }) ApplyDamage(battle, battle.GetUnitAt(index), 1000);
-        foreach (int destination in new[] { 15, 12, 9, 6, 3, 0 })
+        foreach (BattleUnit unit in battle.Battlefield.Units.Where(unit => unit.Side == BattleSide.Ally))
+            ApplyDamage(battle, unit, 1000);
+        foreach (int destination in new[] { 9, 6, 3, 0 })
             Check(TryMove(battle, enemy) && enemy.SlotIndex == destination && enemy.SlotIndex % 3 == 0, "Enemies advance left in same row");
         Check(!TryMove(battle, enemy), "Cannot leave left edge");
 
         battle = BattleInitializationSystem.CreateBattle(Config());
-        ally = battle.GetUnitAt(15);
-        Check(FindTarget(battle, ally) == battle.GetUnitAt(18), "Adjacent target within one grid distance");
-        ApplyDamage(battle, battle.GetUnitAt(18), 1000);
+        ally = battle.GetUnitAt(9);
+        Check(FindTarget(battle, ally) == battle.GetUnitAt(12), "Adjacent target within one grid distance");
+        ApplyDamage(battle, battle.GetUnitAt(12), 1000);
         Check(FindTarget(battle, ally) == null, "Diagonal distance is two, not one");
         battle = BattleInitializationSystem.CreateBattle(Config(2));
-        ApplyDamage(battle, battle.GetUnitAt(18), 1000);
-        Check(FindTarget(battle, battle.GetUnitAt(15)) == battle.GetUnitAt(19), "Manhattan range includes diagonal at two");
+        ApplyDamage(battle, battle.GetUnitAt(12), 1000);
+        Check(FindTarget(battle, battle.GetUnitAt(9)) == battle.GetUnitAt(13), "Manhattan range includes diagonal at two");
+    }
+
+    static void CheckAdjacentAttackPriority()
+    {
+        foreach (BattleSide side in new[] { BattleSide.Ally, BattleSide.Enemy })
+        {
+            using var battle = BattleInitializationSystem.CreateBattle(Config(1, defense: 0));
+            BattleUnit actor = battle.Battlefield.Units.First(unit => unit.Side == side);
+            BattleUnit[] enemies = battle.Battlefield.Units.Where(unit => unit.Side != side).Take(4).ToArray();
+            foreach (BattleUnit unit in battle.Battlefield.Units.ToArray())
+                if (unit != actor && !enemies.Contains(unit)) ApplyDamage(battle, unit, unit.MaxHp);
+            foreach (BattleUnit unit in enemies.Concat(new[] { actor }))
+                unit.RemoveComponent<BattlePositionComponent>();
+            actor.AddComponent<BattlePositionComponent>().TryPlace(10);
+            int[] priority = side == BattleSide.Ally ? new[] { 13, 9, 11, 7 } : new[] { 7, 9, 11, 13 };
+            for (int i = 0; i < enemies.Length; i++)
+                Check(enemies[i].AddComponent<BattlePositionComponent>().TryPlace(priority[i]), "Place directional enemy");
+            for (int i = 0; i < enemies.Length; i++)
+            {
+                Check(actor.FindAdjacentEnemy() == enemies[i] && FindTarget(battle, actor) == enemies[i],
+                    "Both sides prioritize forward, up, down, then back");
+                Check(!TryMove(battle, actor) && actor.SlotIndex == 10, "Any adjacent enemy prevents movement");
+                ApplyDamage(battle, enemies[i], enemies[i].MaxHp);
+            }
+            Check(TryMove(battle, actor) && actor.SlotIndex == (side == BattleSide.Ally ? 13 : 7),
+                "No adjacent enemy permits one forward step");
+        }
+
+        foreach (int targetSlot in new[] { 9, 11, 7, 12, 14, 16 })
+        {
+            using var battle = BattleInitializationSystem.CreateBattle(Config(1, defense: 0));
+            BattleUnit actor = battle.GetUnitAt(3);
+            BattleUnit target = battle.GetUnitAt(18);
+            RemoveExcept(battle, 3, 18);
+            Check(actor.Position.TryPlace(10) && target.Position.TryPlace(targetSlot), "Arrange movement and attack");
+            Tick(battle, 15, new KeepOrderRandom());
+            // Duplicate scheduler entries must never grant a second attack in the round.
+            battle.Round.ActionOrder.Insert(1, actor);
+            var first = Tick(battle, 1, new KeepOrderRandom()).Single();
+            int expectedSlot = targetSlot == 9 || targetSlot == 11 || targetSlot == 7 ? 10 : 13;
+            Check(first.FromSlot == 10 && first.ToSlot == expectedSlot && first.Target == target && first.Hits.Count == 1,
+                "Attack adjacent enemy in place, otherwise move then attack once");
+            Near(target.CurrentHp, 900, "Exactly one attack worth of damage");
+            var repeat = new BattleActionResult();
+            actor.GetComponent<BattleBasicAttackComponent>().TryAttack(repeat);
+            Check(repeat.Hits.Count == 0, "Acted unit cannot attack again");
+            Check(Tick(battle, 1, new KeepOrderRandom()).All(action => action.Unit != actor), "Duplicate action entry is skipped");
+        }
+
+        using var edge = BattleInitializationSystem.CreateBattle(Config(1));
+        BattleUnit edgeActor = edge.GetUnitAt(3);
+        BattleUnit edgeTarget = edge.GetUnitAt(18);
+        RemoveExcept(edge, 3, 18);
+        Check(edgeActor.Position.TryPlace(8) && edgeTarget.Position.TryPlace(9), "Arrange column boundary");
+        Check(edgeActor.FindAdjacentEnemy() == null, "Bottom row does not wrap into next column's top row");
+        Check(edgeTarget.Position.TryPlace(0) && edgeActor.Position.TryPlace(9) && edgeTarget.Position.TryPlace(8), "Arrange opposite column boundary");
+        Check(edgeActor.FindAdjacentEnemy() == null, "Top row does not wrap into previous column's bottom row");
     }
 
     static void CheckDamageAndActions()
@@ -129,13 +188,13 @@ class Program
         Near(BattleCombatComponentSystem.BasicDamage(100, 0), 100, "Zero defense takes full attack damage");
 
         var battle = BattleInitializationSystem.CreateBattle(Config(1, defense: 50));
-        RemoveExcept(battle, 12, 18);
+        RemoveExcept(battle, 6, 12);
         BattleRoundComponent turns = battle.Round;
         var random = new KeepOrderRandom();
         var actions = new List<BattleActionResult>();
         actions.AddRange(Tick(battle, 16, random));
         BattleActionResult first = actions.Single();
-        Check(first.FromSlot == 12 && first.ToSlot == 15 && first.Target.SlotIndex == 18, "Move before range check and attack");
+        Check(first.FromSlot == 6 && first.ToSlot == 9 && first.Target.SlotIndex == 12, "Move before range check and attack");
         Check(first.Hit, "Equal-speed attack always hits");
         Near(first.Damage, 50, "Basic damage applied once after subtracting defense");
         Near(first.Target.CurrentHp, 950, "HP loses attack minus defense");
@@ -143,13 +202,13 @@ class Program
         Check(actions.Count == 2 && turns.RoundNumber == 2, "Each of two surviving units gets one action");
 
         battle = BattleInitializationSystem.CreateBattle(Config(1, hp: 50, defense: 0));
-        RemoveExcept(battle, 15, 18);
-        var doomed = battle.GetUnitAt(18);
+        RemoveExcept(battle, 9, 12);
+        var doomed = battle.GetUnitAt(12);
         turns = battle.Round;
         int attacks = Tick(battle, 100, new KeepOrderRandom()).Count;
         Check(turns.Phase == BattlePhase.Finished && turns.Winner == BattleSide.Ally && attacks == 1, "Finish immediately after final enemy dies");
-        Check(!doomed.IsAlive && doomed.CurrentHp == 0 && battle.GetUnitAt(18) == null, "Death frees slot and HP never goes negative");
-        Check(battle.GetUnitAt(15).CurrentHp == 50, "Defeated unit never retaliates");
+        Check(!doomed.IsAlive && doomed.CurrentHp == 0 && battle.GetUnitAt(12) == null, "Death frees slot and HP never goes negative");
+        Check(battle.GetUnitAt(9).CurrentHp == 50, "Defeated unit never retaliates");
         Check(!TryMove(battle, doomed), "Dead unit cannot move");
     }
 
@@ -166,8 +225,8 @@ class Program
         var battle = BattleInitializationSystem.CreateBattle(config);
         for (int row = 0; row < BattleEntity.RowCount; row++)
         {
-            BattleUnit ally = battle.GetUnitAt(15 + row);
-            BattleUnit enemy = battle.GetUnitAt(18 + row);
+            BattleUnit ally = battle.GetUnitAt(9 + row);
+            BattleUnit enemy = battle.GetUnitAt(12 + row);
             Check(FindTarget(battle, ally) == enemy && FindTarget(battle, enemy) == ally,
                 "Both front lines can attack their adjacent opponent");
         }
@@ -178,27 +237,28 @@ class Program
         character config = Config();
         BattleEntity battle = BattleInitializationSystem.CreateBattle(config);
         var units = battle.Battlefield.Units;
-        Check(units.Count == 18 && battle.Battlefield.SlotCount == 27, "Initial battle entity layout");
+        Check(units.Count == 18 && battle.Battlefield.SlotCount == 24, "Initial battle entity layout");
         Check(units.Select(u => u.Identity).Distinct().Count() == 18, "Independent identity components");
         Check(units.Select(u => u.Position).Distinct().Count() == 18, "Independent position components");
         Check(units.Select(u => u.Health).Distinct().Count() == 18, "Independent health components");
         Check(units.Select(u => u.Combat).Distinct().Count() == 18, "Independent combat components");
         Check(units.Select(u => u.Skills).Distinct().Count() == 18, "Independent skill components");
         Check(units.Select(u => u.Action).Distinct().Count() == 18, "Independent action components");
-        for (int i = 0; i < 9; i++) Check(battle.GetUnitAt(i) == null, "Rear slots empty");
-        for (int i = 9; i < 27; i++)
+        for (int row = 0; row < 3; row++)
+            Check(battle.GetUnitAt(row) == null && battle.GetUnitAt(21 + row) == null, "First and eighth columns start empty");
+        for (int i = 3; i < 21; i++)
         {
             BattleUnit unit = battle.GetUnitAt(i);
-            Check(unit.Side == (i < 18 ? BattleSide.Ally : BattleSide.Enemy), "Center allies/right enemies");
+            Check(unit.Side == (i < 12 ? BattleSide.Ally : BattleSide.Enemy), "Center allies/right enemies");
             Check(unit.Skill1Id == config.skill1Id && unit.Skill2Id == config.skill2Id && unit.Skill3Id == config.skill3Id, "Skill data copied from config");
         }
 
         BattleEntity other = BattleInitializationSystem.CreateBattle(config);
-        BattleUnit first = battle.GetUnitAt(9);
-        BattleUnit second = battle.GetUnitAt(10);
+        BattleUnit first = battle.GetUnitAt(3);
+        BattleUnit second = battle.GetUnitAt(4);
         ApplyDamage(battle, first, 25);
         Check(first.CurrentHp == first.Health.CurrentHp && first.CurrentHp == config.hp - 25, "Queries read live component values");
-        Check(second.CurrentHp == config.hp && other.GetUnitAt(9).CurrentHp == config.hp, "Damage stays in this unit and battle");
+        Check(second.CurrentHp == config.hp && other.GetUnitAt(3).CurrentHp == config.hp, "Damage stays in this unit and battle");
         Check(config.hp == 1000 && config.attack == 100 && config.skill1Id == 100101, "Runtime does not write to config");
         config.attack = 999;
         config.skill1Id = 999;
@@ -235,31 +295,31 @@ class Program
             "Lifecycle updates keep each battle's own clock");
 
         BattleEntity batch = BattleInitializationSystem.CreateBattle(Config(2));
-        RemoveExcept(batch, 12, 21);
+        RemoveExcept(batch, 6, 15);
         IReadOnlyList<BattleActionResult> results = Tick(batch, 17, new KeepOrderRandom());
-        Check(results.Count == 2 && results[0].TargetSlot == 21 && results[0].Target.SlotIndex == 18,
+        Check(results.Count == 2 && results[0].TargetSlot == 15 && results[0].Target.SlotIndex == 12,
             "Returned actions retain impact positions when their target moves later in the same update");
     }
 
     static void CheckDynamicCapabilities()
     {
         BattleEntity waiting = BattleInitializationSystem.CreateBattle(Config(2));
-        RemoveExcept(waiting, 12, 21);
-        Check(Tick(waiting, 15, new KeepOrderRandom()).Count == 0 && waiting.GetUnitAt(12) != null && waiting.GetUnitAt(21).CurrentHp == 1000,
+        RemoveExcept(waiting, 6, 15);
+        Check(Tick(waiting, 15, new KeepOrderRandom()).Count == 0 && waiting.GetUnitAt(6) != null && waiting.GetUnitAt(15).CurrentHp == 1000,
             "Attaching movement and attack provides capabilities without acting during preparation");
         BattleEntity battle = BattleInitializationSystem.CreateBattle(Config(2));
-        RemoveExcept(battle, 15, 21);
-        BattleUnit unit = battle.GetUnitAt(15);
+        RemoveExcept(battle, 9, 15);
+        BattleUnit unit = battle.GetUnitAt(9);
         unit.RemoveComponent<BattleMovementComponent>();
         BattleActionResult result = Tick(battle, 16, new KeepOrderRandom()).Single();
-        Check(result.FromSlot == 15 && result.ToSlot == 15 && result.Hit, "No movement component: stays put and can still attack");
+        Check(result.FromSlot == 9 && result.ToSlot == 9 && result.Hit, "No movement component: stays put and can still attack");
 
         battle = BattleInitializationSystem.CreateBattle(Config(2));
-        RemoveExcept(battle, 12, 21);
-        unit = battle.GetUnitAt(12);
+        RemoveExcept(battle, 6, 15);
+        unit = battle.GetUnitAt(6);
         unit.RemoveComponent<BattleBasicAttackComponent>();
         result = Tick(battle, 16, new KeepOrderRandom()).Single();
-        Check(result.ToSlot == 15 && result.Target == null && battle.GetUnitAt(21).CurrentHp == 1000,
+        Check(result.ToSlot == 9 && result.Target == null && battle.GetUnitAt(15).CurrentHp == 1000,
             "No basic attack component: moves but does not attack");
         unit.AddComponent<BattleBasicAttackComponent>();
         var extra = new BattleActionResult();
@@ -269,33 +329,33 @@ class Program
         Check(Tick(battle, 16, new KeepOrderRandom()).Single().Hit, "Attack restored for next round");
 
         battle = BattleInitializationSystem.CreateBattle(Config(2));
-        RemoveExcept(battle, 12, 21);
-        unit = battle.GetUnitAt(12);
+        RemoveExcept(battle, 6, 15);
+        unit = battle.GetUnitAt(6);
         unit.RemoveComponent<BattleMovementComponent>();
         unit.RemoveComponent<BattleBasicAttackComponent>();
         result = Tick(battle, 16, new KeepOrderRandom()).Single();
         Check(result.FromSlot == result.ToSlot && result.Target == null, "No capabilities: no movement or attack");
 
         battle = BattleInitializationSystem.CreateBattle(Config(2));
-        RemoveExcept(battle, 12, 21);
-        unit = battle.GetUnitAt(12);
+        RemoveExcept(battle, 6, 15);
+        unit = battle.GetUnitAt(6);
         unit.RemoveComponent<BattleMovementComponent>();
         unit.AddComponent<BattleMovementComponent>();
-        Check(Tick(battle, 16, new KeepOrderRandom()).Single().ToSlot == 15, "Movement restored before pending action");
+        Check(Tick(battle, 16, new KeepOrderRandom()).Single().ToSlot == 9, "Movement restored before pending action");
 
         battle = BattleInitializationSystem.CreateBattle(Config());
-        unit = battle.GetUnitAt(15);
+        unit = battle.GetUnitAt(9);
         BattlePositionComponent oldPosition = unit.Position;
         unit.RemoveComponent<BattlePositionComponent>();
-        Check(oldPosition.IsDisposed && battle.GetUnitAt(15) == null && unit.SlotIndex == -1, "Position destruction releases occupancy");
-        Check(TryMove(battle, battle.GetUnitAt(12)), "Another unit can occupy the released slot");
+        Check(oldPosition.IsDisposed && battle.GetUnitAt(9) == null && unit.SlotIndex == -1, "Position destruction releases occupancy");
+        Check(TryMove(battle, battle.GetUnitAt(6)), "Another unit can occupy the released slot");
         BattlePositionComponent replacement = unit.AddComponent<BattlePositionComponent>();
-        Check(!replacement.TryPlace(15) && replacement.TryPlace(6), "Position reattachment validates occupancy and can be placed again");
+        Check(!replacement.TryPlace(9) && !replacement.TryPlace(0) && replacement.TryPlace(21), "Position validates occupancy and forbids ally entry to column one");
 
         battle = BattleInitializationSystem.CreateBattle(Config());
-        RemoveExcept(battle, 15, 18);
-        unit = battle.GetUnitAt(15);
-        BattleUnit target = battle.GetUnitAt(18);
+        RemoveExcept(battle, 9, 12);
+        unit = battle.GetUnitAt(9);
+        BattleUnit target = battle.GetUnitAt(12);
         target.RemoveComponent<BattleHealthComponent>();
         Check(FindTarget(battle, unit) == null && target.Health.ApplyDamage(50) == 0, "Missing health is not an attack target and takes no damage");
         BattleHealthComponent health = target.AddComponent<BattleHealthComponent>();
@@ -307,8 +367,8 @@ class Program
         Check(FindTarget(battle, unit) == target, "Restoring target data restores targeting");
 
         battle = BattleInitializationSystem.CreateBattle(Config());
-        RemoveExcept(battle, 15, 18);
-        unit = battle.GetUnitAt(15);
+        RemoveExcept(battle, 9, 12);
+        unit = battle.GetUnitAt(9);
         unit.RemoveComponent<BattleActionComponent>();
         Tick(battle, 15, new KeepOrderRandom());
         unit.AddComponent<BattleActionComponent>();
@@ -341,6 +401,7 @@ class Program
     {
         CheckClockAndOrder();
         CheckMovementAndRange();
+        CheckAdjacentAttackPriority();
         CheckDamageAndActions();
         CheckActualConfig();
         CheckComponentIsolation();
@@ -350,6 +411,9 @@ class Program
         SkillChecks.Run();
         ThunderChecks.Run();
         EnemyAIChecks.Run();
+        MoonChecks.Run();
+        CooldownChecks.Run();
+        WolfComboChecks.Run();
         Console.WriteLine("PASS: preparation/action timing, repeated rounds, randomized order, movement/blocking/bounds, Manhattan range, hit formula, subtractive defense damage, death and victory.");
     }
 }

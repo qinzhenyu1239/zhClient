@@ -12,4 +12,5 @@ public class skill
 	public string param6;
 	public float skillRange;
 	public int skillPointCost;
+	public int skillCd;
 }

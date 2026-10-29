@@ -19,31 +19,37 @@ static class ThunderChecks
     {
         var wolf = ExcelDataMgr.Instance.GetConfigData<character>("1001");
         var thor = ExcelDataMgr.Instance.GetConfigData<character>("1002");
-        var candidates = new[] { wolf, thor };
+        var moon = ExcelDataMgr.Instance.GetConfigData<character>("1003");
+        var candidates = new[] { wolf, thor, moon };
         var records = ExcelDataMgr.Instance.GetConfigDatas<skill>(null);
         var random = new AlternatingRandom();
         using var battle = BattleInitializationSystem.CreateRandomBattle(candidates, random: random, skillConfigs: records);
-        Check(random.Draws >= 18 && battle.Battlefield.Units.Count == 18, "each of 18 occupied slots draws independently before AI planning");
-        foreach (var unit in battle.Battlefield.Units)
-            Check(unit.CharacterId == candidates[(unit.SlotIndex - 9) % 2].ID, "formation draw order is independent of later AI choices");
+        Check(random.Draws >= 6 && battle.Battlefield.Units.Count == 6, "one of each hero per side with randomized positions");
         foreach (var side in new[] { BattleSide.Ally, BattleSide.Enemy })
         {
             var units = battle.Battlefield.Units.Where(unit => unit.Side == side).ToArray();
-            Check(units.Length == 9 && units.Select(unit => unit.CharacterId).Distinct().Count() == 2,
-                "both sides accept both random heroes");
+            Check(units.Length == 3 && units.Select(unit => unit.CharacterId).OrderBy(id => id).SequenceEqual(new[] { 1001, 1002, 1003 }),
+                "both sides contain exactly one wolf, Thor and Moon Goddess");
+            int start = side == BattleSide.Ally ? 3 : 12;
+            Check(units.All(unit => unit.SlotIndex >= start && unit.SlotIndex < start + 9), "unique heroes stay in their side's formation columns");
             foreach (var unit in units)
             {
-                var config = unit.CharacterId == wolf.ID ? wolf : thor;
+                var config = candidates.Single(candidate => candidate.ID == unit.CharacterId);
                 Check(unit.MaxHp == config.hp && unit.Attack == config.attack && unit.Defense == config.defense &&
                     unit.Skill1Id == config.skill1Id && unit.Skill2Id == config.skill2Id && unit.Skill3Id == config.skill3Id,
                     "random hero retains its own stats and skills");
             }
         }
-        Check(Enumerable.Range(0, 9).All(slot => battle.GetUnitAt(slot) == null), "random formation preserves rear empty cells");
+        Check(Enumerable.Range(0, 3).All(row => battle.GetUnitAt(row) == null && battle.GetUnitAt(21 + row) == null), "random formation preserves both empty edge columns");
         using var first = BattleInitializationSystem.CreateRandomBattle(candidates, random: new Random(42), skillConfigs: records);
         using var second = BattleInitializationSystem.CreateRandomBattle(candidates, random: new Random(42), skillConfigs: records);
         Check(first.Battlefield.Units.Select(unit => unit.CharacterId).SequenceEqual(second.Battlefield.Units.Select(unit => unit.CharacterId)),
             "seeded random formation is reproducible");
+        Check(first.Battlefield.Units.Select(unit => unit.SlotIndex).SequenceEqual(second.Battlefield.Units.Select(unit => unit.SlotIndex)),
+            "seeded formation positions are reproducible");
+        using var duplicate = BattleInitializationSystem.CreateRandomBattle(new[] { wolf, wolf, thor, moon }, random: new Random(42), skillConfigs: records);
+        Check(duplicate.Battlefield.Units.Count == 6 && duplicate.Battlefield.Units.GroupBy(unit => new { unit.Side, unit.CharacterId }).All(group => group.Count() == 1),
+            "duplicate candidate IDs cannot create duplicate heroes");
     }
     static void Check(bool condition, string message)
     {
@@ -67,7 +73,7 @@ static class ThunderChecks
         };
         return BattleInitializationSystem.CreateBattle(wolf, random: new FixedRandom(),
             skillConfigs: records,
-            lineup: new Dictionary<int, character> { { 15, thor } });
+            lineup: new Dictionary<int, character> { { 9, thor } });
     }
     static BattleActionResult Cast(BattleUnit unit, int skill)
     {
@@ -80,8 +86,8 @@ static class ThunderChecks
     static void CheckSilence()
     {
         using var battle = Create();
-        var unit = battle.GetUnitAt(15);
-        var target = battle.GetUnitAt(18);
+        var unit = battle.GetUnitAt(9);
+        var target = battle.GetUnitAt(12);
         Check(unit.CharacterId == 1002 && unit.Name == "雷神" && target.CharacterId == 1001, "mixed formation identity");
         Check(unit.MaxHp == 1400 && unit.Attack == 130 && unit.Defense == 30 && unit.Speed == 75 && unit.AttackRange == 2, "Thor base configuration");
         battle.Round.Phase = BattlePhase.Combat;
@@ -109,9 +115,9 @@ static class ThunderChecks
     {
         using var battle = Create();
         battle.Round.Phase = BattlePhase.Combat;
-        var unit = battle.GetUnitAt(15);
+        var unit = battle.GetUnitAt(9);
         var expected = unit.Combat.FindEnemies(99, 3);
-        Check(expected.Select(u => u.SlotIndex).SequenceEqual(new[] { 18, 19, 21 }), "nearest three with stable tie order");
+        Check(expected.Select(u => u.SlotIndex).SequenceEqual(new[] { 12, 13, 15 }), "nearest three with stable tie order");
         expected[0].Health.CurrentHp = 10;
         foreach (var enemy in expected) enemy.Combat.Defense = 9999;
         float perTarget = expected[1].MaxHp * .08f;
@@ -139,16 +145,16 @@ static class ThunderChecks
         var battle = Create();
         battle.Round.Phase = BattlePhase.Combat;
         battle.Round.ActionRemaining = 100;
-        var unit = battle.GetUnitAt(15);
+        var unit = battle.GetUnitAt(9);
         unit.AddShield(50, 2);
-        battle.GetUnitAt(18).Health.CurrentHp = 1;
+        battle.GetUnitAt(12).Health.CurrentHp = 1;
         Cast(unit, BattleSkillDefinition.Thundercloud);
         return battle;
     }
     static void CheckCloud()
     {
         using var battle = CloudBattle();
-        var unit = battle.GetUnitAt(15);
+        var unit = battle.GetUnitAt(9);
         battle.World.Update(.5);
         Check(battle.Round.DrainActions().Count == 0, "no immediate or half-second strike");
         battle.World.Update(.5);
@@ -171,25 +177,25 @@ static class ThunderChecks
         Check(largeFrame.Round.DrainActions().Count == 4 && smallFrames.Round.DrainActions().Count == 4, "long frame catches up all four strikes");
         Check(largeFrame.Battlefield.Units.Select(u => u.CurrentHp).SequenceEqual(smallFrames.Battlefield.Units.Select(u => u.CurrentHp)), "partition-independent lightning damage");
         using var deadCaster = CloudBattle();
-        var caster = deadCaster.GetUnitAt(15);
+        var caster = deadCaster.GetUnitAt(9);
         caster.Health.ApplyDamage(100000);
         deadCaster.World.Update(4);
         Check(deadCaster.Round.DrainActions().Count == 0 && caster.GetComponent<BattleThundercloudComponent>() == null, "dead caster stops cloud");
         using var victory = CloudBattle();
-        foreach (var enemy in victory.Battlefield.Units.Where(u => u.Side == BattleSide.Enemy && u.SlotIndex != 18))
+        foreach (var enemy in victory.Battlefield.Units.Where(u => u.Side == BattleSide.Enemy && u.SlotIndex != 12))
             enemy.Health.ApplyDamage(enemy.MaxHp);
         victory.World.Update(4);
         Check(victory.Round.Phase == BattlePhase.Finished && victory.Round.DrainActions().Count == 1 &&
-            victory.GetUnitAt(15).GetComponent<BattleThundercloudComponent>() == null, "victory stops all later cloud strikes");
+            victory.GetUnitAt(9).GetComponent<BattleThundercloudComponent>() == null, "victory stops all later cloud strikes");
         using var removedRound = CloudBattle();
-        var remainingCaster = removedRound.GetUnitAt(15);
+        var remainingCaster = removedRound.GetUnitAt(9);
         removedRound.RemoveComponent<BattleRoundComponent>();
         Check(remainingCaster.GetComponent<BattleThundercloudComponent>() == null, "round removal cancels lingering cloud");
     }
     static void CheckScheduledCloud()
     {
         using var battle = Create();
-        var actor = battle.GetUnitAt(15);
+        var actor = battle.GetUnitAt(9);
         foreach (var unit in battle.Battlefield.Units)
             if (unit != actor) unit.RemoveComponent<BattleActionComponent>();
         Check(actor.Skills.TryQueue(BattleSkillDefinition.Thundercloud, out _), "reserve cloud during preparation");

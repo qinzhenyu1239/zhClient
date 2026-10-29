@@ -26,7 +26,12 @@ public static class BattleHealthComponentSystem
         absorbed = target?.GetComponent<BattleShieldComponent>().Absorb(damage) ?? 0;
         float applied = Math.Min(self.CurrentHp, damage - absorbed);
         self.CurrentHp -= applied;
-        if (self.CurrentHp <= 0) target?.Skills.CancelPendingSkill();
+        if (self.CurrentHp <= 0)
+        {
+            target?.Skills.CancelPendingSkill();
+            target?.GetComponent<BattleMoonMarkComponent>()?.Dispose();
+            target?.GetComponent<BattleMoonShowerComponent>()?.Dispose();
+        }
         BattlefieldComponent field = target?.GetParent<BattleEntity>()?.Battlefield;
         if (self.CurrentHp <= 0 && field != null && target.Position != null && field.GetUnitAt(target.SlotIndex) == target)
             field.Occupancy[target.SlotIndex] = null;

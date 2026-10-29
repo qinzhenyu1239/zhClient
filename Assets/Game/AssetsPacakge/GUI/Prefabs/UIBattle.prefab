@@ -554,7 +554,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: "\u9009\u62e9\u683c\u5b50\u90e8\u7f72\u5355\u4f4d \u00b7 \u5171 27 \u4e2a\u6218\u573a\u683c\u5b50"
+  m_Text: "\u9009\u62e9\u683c\u5b50\u90e8\u7f72\u5355\u4f4d \u00b7 \u5171 24 \u4e2a\u6218\u573a\u683c\u5b50"
 --- !u!1 &2337975962418853812
 GameObject:
   m_ObjectHideFlags: 0
@@ -614,7 +614,7 @@ MonoBehaviour:
   m_CellSize: {x: 120, y: 114}
   m_Spacing: {x: 10, y: 14}
   m_Constraint: 1
-  m_ConstraintCount: 9
+  m_ConstraintCount: 8
 --- !u!1 &2490269318182982611
 GameObject:
   m_ObjectHideFlags: 0
@@ -1449,7 +1449,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: "BATTLEFIELD  /  9 \u00d7 3"
+  m_Text: "BATTLEFIELD  /  8 \u00d7 3"
 --- !u!1 &7744073268534558151
 GameObject:
   m_ObjectHideFlags: 0
@@ -1687,7 +1687,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: "\u5171 27 \u683c"
+  m_Text: "\u5171 24 \u683c"
 --- !u!1 &9031601291403966143
 GameObject:
   m_ObjectHideFlags: 0
@@ -1845,4 +1845,4 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: "9 \u5217 \u00d7 3 \u884c \u00b7 \u70b9\u51fb\u7a7a\u4f4d\u4e0a\u9635"
+  m_Text: "8 \u5217 \u00d7 3 \u884c \u00b7 \u70b9\u51fb\u7a7a\u4f4d\u4e0a\u9635"

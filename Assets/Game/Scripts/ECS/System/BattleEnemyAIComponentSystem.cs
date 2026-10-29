@@ -28,7 +28,7 @@ public static class BattleEnemyAIComponentSystem
                 if (unit.Combat.FindTargetInRange(definition.Range) == null) continue;
             }
             if (id == BattleSkillDefinition.ComboAttack &&
-                unit.GetComponent<BattleComboAttackComponent>()?.LastRound > battle.Round.RoundNumber) continue;
+                unit.GetComponent<BattleComboAttackComponent>()?.RemainingAttacks > 0) continue;
             if (id == BattleSkillDefinition.Thundercloud &&
                 unit.GetComponent<BattleThundercloudComponent>()?.RemainingStrikes > 0) continue;
             usable.Add(id);

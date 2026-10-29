@@ -9,6 +9,7 @@ public sealed class BattleUnitView : MonoBehaviour
     public BattleUnit Unit { get; private set; }
     private Sprite defaultPortrait;
     private Sprite thunderPortrait;
+    private Sprite moonPortrait;
     private bool portraitsLoaded;
 
     private void RefreshPortrait()
@@ -19,9 +20,11 @@ public sealed class BattleUnitView : MonoBehaviour
         {
             defaultPortrait = image.sprite;
             thunderPortrait = ResMgr.Instance.LoadAssetSync<Sprite>("Images/ThunderGod.png");
+            moonPortrait = ResMgr.Instance.LoadAssetSync<Sprite>("Images/MoonlightGoddess.png");
             portraitsLoaded = true;
         }
-        image.sprite = Unit?.CharacterId == BattleEntity.ThunderGodId ? thunderPortrait : defaultPortrait;
+        image.sprite = Unit?.CharacterId == BattleEntity.MoonlightGoddessId ? moonPortrait :
+            Unit?.CharacterId == BattleEntity.ThunderGodId ? thunderPortrait : defaultPortrait;
         image.preserveAspect = true;
     }
 
@@ -46,7 +49,10 @@ public sealed class BattleUnitView : MonoBehaviour
         public float bleedMaxHpRatio;
         public int lifestealStacks;
         public float lifestealRatio;
-        public int comboFirstRound, comboLastRound, comboMinHits, comboMaxHits;
+        public int comboFirstRound, comboRemainingAttacks, comboMinHits, comboMaxHits;
+        public int moonMarkStacks, moonShowerRemainingMarks;
+        public int skill1CooldownRounds, skill2CooldownRounds, skill3CooldownRounds;
+        public bool assassinHasInfiltrated;
     }
 
     [SerializeField, Tooltip("运行时 ECS 数据的显示快照，每次刷新都会同步；修改这里不会改变实际战斗数据。")]
@@ -87,6 +93,9 @@ public sealed class BattleUnitView : MonoBehaviour
         runtimeData.skill1Id = unit.Skill1Id;
         runtimeData.skill2Id = unit.Skill2Id;
         runtimeData.skill3Id = unit.Skill3Id;
+        runtimeData.skill1CooldownRounds = unit.Skills.CooldownRemaining(unit.Skill1Id);
+        runtimeData.skill2CooldownRounds = unit.Skills.CooldownRemaining(unit.Skill2Id);
+        runtimeData.skill3CooldownRounds = unit.Skills.CooldownRemaining(unit.Skill3Id);
         runtimeData.pendingSkillId = unit.Skills?.PendingSkillId ?? 0;
         runtimeData.reservedSkillPoints = unit.Skills?.ReservedCost ?? 0;
         runtimeData.sharedSkillPoints = unit.GetParent<BattleEntity>()?.GetComponent<BattleSkillPointComponent>().CurrentFor(unit.Side) ?? 0;
@@ -99,9 +108,12 @@ public sealed class BattleUnitView : MonoBehaviour
         runtimeData.lifestealRatio = (lifesteal?.Stacks ?? 0) * (lifesteal?.RatioPerStack ?? 0);
         var combo = unit.GetComponent<BattleComboAttackComponent>();
         runtimeData.comboFirstRound = combo?.FirstRound ?? 0;
-        runtimeData.comboLastRound = combo?.LastRound ?? 0;
+        runtimeData.comboRemainingAttacks = combo?.RemainingAttacks ?? 0;
         runtimeData.comboMinHits = combo?.MinHits ?? 0;
         runtimeData.comboMaxHits = combo?.MaxHits ?? 0;
+        runtimeData.moonMarkStacks = unit.GetComponent<BattleMoonMarkComponent>()?.Stacks ?? 0;
+        runtimeData.moonShowerRemainingMarks = unit.GetComponent<BattleMoonShowerComponent>()?.RemainingMarks ?? 0;
+        runtimeData.assassinHasInfiltrated = unit.GetComponent<BattleAssassinComponent>()?.HasInfiltrated ?? false;
     }
 #endif
 
@@ -157,6 +169,8 @@ public sealed class BattleUnitView : MonoBehaviour
                 float shield = unit.GetComponent<BattleShieldComponent>()?.Amount ?? 0;
                 if (shield > 0) name.text += " 盾" + shield.ToString("0.#");
                 if (unit.IsSilenced()) name.text += " 禁攻";
+                int marks = unit.GetComponent<BattleMoonMarkComponent>()?.Stacks ?? 0;
+                if (marks > 0) name.text += " 月印" + marks;
             }
             name.color = accent;
         }

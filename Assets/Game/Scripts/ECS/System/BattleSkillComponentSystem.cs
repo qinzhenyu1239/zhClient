@@ -9,11 +9,19 @@ public static class BattleSkillComponentSystem
     {
         self.CancelPendingSkill();
         self.Definitions.Clear();
+        self.CooldownReadyRounds.Clear();
     }
 
     public static BattleSkillDefinition GetDefinition(this BattleSkillComponent self, int id)
     {
         return self != null && !self.IsDisposed && self.Definitions.TryGetValue(id, out BattleSkillDefinition definition) ? definition : null;
+    }
+
+    public static int CooldownRemaining(this BattleSkillComponent self, int id)
+    {
+        var round = self?.GetParent<BattleUnit>()?.GetParent<BattleEntity>()?.Round;
+        if (self == null || self.IsDisposed || round == null || !self.CooldownReadyRounds.TryGetValue(id, out long readyRound)) return 0;
+        return (int)Math.Min(int.MaxValue, Math.Max(0L, readyRound - round.RoundNumber));
     }
 
     public static bool CanQueue(this BattleSkillComponent self, int id, out string reason)
@@ -27,9 +35,13 @@ public static class BattleSkillComponentSystem
         if (unit.IsSilenced()) { reason = "沉默中，本回合无法普攻或释放技能"; return false; }
         if (definition == null || (id != self.Skill1Id && id != self.Skill2Id && id != self.Skill3Id) ||
             (id != BattleSkillDefinition.DoubleStrike && id != BattleSkillDefinition.Lifesteal && id != BattleSkillDefinition.ComboAttack &&
-             id != BattleSkillDefinition.ThunderStrike && id != BattleSkillDefinition.ChainLightning && id != BattleSkillDefinition.Thundercloud))
+             id != BattleSkillDefinition.ThunderStrike && id != BattleSkillDefinition.ChainLightning && id != BattleSkillDefinition.Thundercloud &&
+             id != BattleSkillDefinition.MoonCleave && id != BattleSkillDefinition.MoonBlink && id != BattleSkillDefinition.MoonShower))
         { reason = "技能配置不存在或暂不支持"; return false; }
+        int cooldown = self.CooldownRemaining(id);
+        if (cooldown > 0) { reason = "技能冷却中，剩余 " + cooldown + " 回合"; return false; }
         if (unit.Combat == null) { reason = "未挂载战斗属性组件"; return false; }
+        if (!unit.CanUseMoonSkill(id)) { reason = "当前没有有效目标、空位或月华倾泻仍在生效"; return false; }
         if (id == BattleSkillDefinition.Lifesteal && unit.GetComponent<BattleLifestealComponent>()?.Stacks >= definition.Int(2))
         { reason = "吸血已达到最大层数"; return false; }
         BattleSkillPointComponent pool = battle.GetComponent<BattleSkillPointComponent>();
@@ -116,21 +128,33 @@ public static class BattleSkillComponentSystem
                 lifesteal.RatioPerStack = definition.Percent(1);
                 lifesteal.Stacks = Math.Min(lifesteal.MaxStacks, lifesteal.Stacks + 1);
                 action.Message = "吸血 " + (lifesteal.Stacks * lifesteal.RatioPerStack * 100).ToString("0.##") + "%（" + lifesteal.Stacks + "/" + lifesteal.MaxStacks + "）";
+                if (unit.GetComponent<BattleComboAttackComponent>().IsReady(battle.Round))
+                {
+                    action.Message += " · 大招连击";
+                    unit.GetComponent<BattleBasicAttackComponent>()?.TryAttack(action);
+                }
                 break;
             case BattleSkillDefinition.ComboAttack:
                 BattleComboAttackComponent combo = unit.GetComponent<BattleComboAttackComponent>() ?? unit.AddComponent<BattleComboAttackComponent>();
                 combo.FirstRound = battle.Round.RoundNumber + 1;
-                combo.LastRound = battle.Round.RoundNumber + definition.Int(1);
+                combo.RemainingAttacks = definition.Int(1);
                 combo.MinHits = definition.Int(2);
                 combo.MaxHits = definition.Int(3);
-                action.Message = "后 " + definition.Int(1) + " 回合普攻连击";
+                action.Message = "后续 " + definition.Int(1) + " 次攻击触发大招连击";
                 break;
             case BattleSkillDefinition.ThunderStrike:
             case BattleSkillDefinition.ChainLightning:
             case BattleSkillDefinition.Thundercloud:
                 self.CastThunderSkill(definition, target, action);
                 break;
+            case BattleSkillDefinition.MoonCleave:
+            case BattleSkillDefinition.MoonBlink:
+            case BattleSkillDefinition.MoonShower:
+                self.CastMoonSkill(definition, action);
+                break;
         }
+        if (definition.CooldownRounds > 0)
+            self.CooldownReadyRounds[definition.Id] = (long)battle.Round.RoundNumber + definition.CooldownRounds;
         return true;
     }
 

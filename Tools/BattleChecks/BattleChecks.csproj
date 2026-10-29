@@ -19,5 +19,8 @@
     <Compile Include="SkillChecks.cs" />
     <Compile Include="ThunderChecks.cs" />
     <Compile Include="EnemyAIChecks.cs" />
+    <Compile Include="MoonChecks.cs" />
+    <Compile Include="CooldownChecks.cs" />
+    <Compile Include="WolfComboChecks.cs" />
   </ItemGroup>
 </Project>

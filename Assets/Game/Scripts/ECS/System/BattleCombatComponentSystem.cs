@@ -12,6 +12,8 @@ public static class BattleCombatComponentSystem
         BattlefieldComponent field = attacker?.GetParent<BattleEntity>()?.Battlefield;
         if (self == null || self.IsDisposed || attacker == null || !attacker.IsAlive || attacker.Identity == null ||
             attacker.Position == null || field == null || field.GetUnitAt(attacker.SlotIndex) != attacker) return null;
+        BattleUnit adjacent = range >= 1 ? attacker.FindAdjacentEnemy() : null;
+        if (adjacent != null) return adjacent;
         BattleUnit nearest = null;
         int nearestDistance = int.MaxValue;
         foreach (BattleUnit target in field.Units)
@@ -45,7 +47,7 @@ public static class BattleCombatComponentSystem
         self.ResolveHit(target, action, Math.Max(0, self.Attack * attackMultiplier - target.Defense));
     }
 
-    public static void ResolveHit(this BattleCombatComponent self, BattleUnit target, BattleActionResult action, float damageAmount)
+    public static void ResolveHit(this BattleCombatComponent self, BattleUnit target, BattleActionResult action, float damageAmount, bool guaranteed = false)
     {
         BattleUnit attacker = self?.GetParent<BattleUnit>();
         BattleRoundComponent round = attacker?.GetParent<BattleEntity>()?.Round;
@@ -53,7 +55,7 @@ public static class BattleCombatComponentSystem
         action.Target = target;
         action.TargetSlot = target.SlotIndex;
         double chance = self.HitChance(target.Combat);
-        bool hit = chance >= 1d || (chance > 0d && round.Random.NextDouble() < chance);
+        bool hit = guaranteed || chance >= 1d || (chance > 0d && round.Random.NextDouble() < chance);
         float absorbed = 0;
         float damage = hit ? target.Health.ApplyDamage(damageAmount, out absorbed) : 0;
         float healing = hit ? attacker.GetComponent<BattleLifestealComponent>().HealFromDirectDamage(damage) : 0;
