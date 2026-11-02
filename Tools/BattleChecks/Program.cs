@@ -410,6 +410,8 @@ class Program
         CooldownChecks.Run();
         WolfComboChecks.Run();
         JudicatorChecks.Run();
+        HunterChecks.Run();
+        BloodLordChecks.Run();
         Console.WriteLine("PASS: preparation/action timing, repeated rounds, randomized order, movement/blocking/bounds, Manhattan range, hit formula, subtractive defense damage, death and victory.");
     }
 }

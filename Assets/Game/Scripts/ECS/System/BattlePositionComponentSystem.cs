@@ -25,18 +25,31 @@ public static class BattlePositionComponentSystem
         self.SlotIndex = -1;
     }
 
-    public static bool TryPlace(this BattlePositionComponent self, int destination)
+    public static bool TryPlace(this BattlePositionComponent self, int destination) => self.Place(destination, false);
+
+    internal static bool TryPlaceBloodDomain(this BattlePositionComponent self, int destination)
+    {
+        var unit = self?.GetParent<BattleUnit>();
+        if (unit == null || !unit.GetComponent<BattleBloodDomainComponent>().IsBloodDomainActive()) return false;
+        return self.Place(destination, true);
+    }
+
+    private static bool Place(this BattlePositionComponent self, int destination, bool bloodDomain)
     {
         BattleUnit unit = self?.GetParent<BattleUnit>();
         BattlefieldComponent field = unit?.GetParent<BattleEntity>()?.Battlefield;
         if (self == null || self.IsDisposed || unit == null || unit.IsDisposed || field == null ||
-            !unit.CanEnterSlot(destination) || !field.Members.Contains(unit)) return false;
+            destination < 0 || destination >= field.SlotCount || (!bloodDomain && !unit.CanEnterSlot(destination)) ||
+            !field.Members.Contains(unit)) return false;
         BattleUnit occupied = field.GetUnitAt(destination);
         if (occupied != null && occupied != unit) return false;
         if (self.SlotIndex >= 0 && self.SlotIndex < field.SlotCount && field.Occupancy[self.SlotIndex] == unit)
             field.Occupancy[self.SlotIndex] = null;
         field.Occupancy[destination] = unit;
         self.SlotIndex = destination;
+        // A displacement by either the archer or its target can break the lock immediately.
+        foreach (var member in field.Units)
+            member.GetComponent<BattleLethalTempoComponent>().RetainedTargetInRange();
         return true;
     }
 }

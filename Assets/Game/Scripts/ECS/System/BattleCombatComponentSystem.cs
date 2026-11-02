@@ -44,7 +44,7 @@ public static class BattleCombatComponentSystem
     public static void ResolveDirectHit(this BattleCombatComponent self, BattleUnit target, BattleActionResult action, float attackMultiplier = 1)
     {
         if (self == null || target == null) return;
-        self.ResolveHit(target, action, Math.Max(0, self.Attack * attackMultiplier - target.Defense));
+        self.ResolveHit(target, action, Math.Max(0, (self.GetParent<BattleUnit>()?.Attack ?? self.Attack) * attackMultiplier - target.Defense));
     }
 
     public static void ResolveHit(this BattleCombatComponent self, BattleUnit target, BattleActionResult action, float damageAmount, bool guaranteed = false)
@@ -55,7 +55,7 @@ public static class BattleCombatComponentSystem
         action.Target = target;
         action.TargetSlot = target.SlotIndex;
         double chance = self.HitChance(target.Combat);
-        bool hit = guaranteed || chance >= 1d || (chance > 0d && round.Random.NextDouble() < chance);
+        bool hit = guaranteed || attacker.HasPrecision() || chance >= 1d || (chance > 0d && round.Random.NextDouble() < chance);
         float absorbed = 0;
         float damage = hit ? target.Health.ApplyDamage(damageAmount, out absorbed) : 0;
         attacker.RecordDamage(damage);
@@ -77,5 +77,5 @@ public static class BattleCombatComponentSystem
     }
 
     public static double HitChance(this BattleCombatComponent self, BattleCombatComponent target) => HitChance(self.Speed, target.Speed);
-    public static float BasicDamage(this BattleCombatComponent self, BattleCombatComponent target) => BasicDamage(self.Attack, target.GetParent<BattleUnit>()?.Defense ?? target.Defense);
+    public static float BasicDamage(this BattleCombatComponent self, BattleCombatComponent target) => BasicDamage(self.GetParent<BattleUnit>()?.Attack ?? self.Attack, target.GetParent<BattleUnit>()?.Defense ?? target.Defense);
 }

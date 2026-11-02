@@ -33,6 +33,12 @@ public sealed class BattleSkillDefinition
     public const int JudgmentBeam = 100401;
     public const int HolyProtection = 100402;
     public const int HolyJudgment = 100403;
+    public const int JungleSkirmish = 100501;
+    public const int PrecisionStrike = 100502;
+    public const int LethalTempo = 100503;
+    public const int JumpingCleave = 100601;
+    public const int AbsoluteDominion = 100602;
+    public const int BloodDomain = 100603;
     public int Id { get; }
     public string Description { get; }
     public float Range { get; }
@@ -80,6 +86,22 @@ public sealed class BattleSkillDefinition
                 break;
             case HolyProtection:
                 Value(1); Int(2);
+                break;
+            case JungleSkirmish: Int(1); Int(2); break;
+            case PrecisionStrike: Int(1); Int(2); break;
+            case LethalTempo:
+                Int(1); Int(2); Value(3);
+                if (Value(3) > 100) throw new ArgumentException("Tempo damage ratio must not exceed 100%.");
+                break;
+            case JumpingCleave: Value(1); break;
+            case AbsoluteDominion:
+                Int(1); Value(2);
+                if (Value(2) > 100) throw new ArgumentException("Health drain ratio must not exceed 100%.");
+                break;
+            case BloodDomain:
+                Int(1); Value(2); Value(3); Value(4); Int(5);
+                if (Value(2) > 100 || Value(3) > 100 || Value(4) > 100 || Int(5) > 100)
+                    throw new ArgumentException("Invalid blood domain absorption or defense cap.");
                 break;
             case HolyJudgment:
                 ValidateExecutionThreshold(1); Int(2);

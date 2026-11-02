@@ -12,5 +12,6 @@ public sealed class BattleIdentityComponent : Entity
     public int UnitId { get; internal set; }
     public int CharacterId { get; internal set; }
     public string Name { get; internal set; }
+    public string Job { get; internal set; }
     public BattleSide Side { get; internal set; }
 }

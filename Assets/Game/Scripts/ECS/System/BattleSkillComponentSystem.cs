@@ -37,12 +37,16 @@ public static class BattleSkillComponentSystem
             (id != BattleSkillDefinition.DoubleStrike && id != BattleSkillDefinition.Lifesteal && id != BattleSkillDefinition.ComboAttack &&
              id != BattleSkillDefinition.ThunderStrike && id != BattleSkillDefinition.ChainLightning && id != BattleSkillDefinition.Thundercloud &&
              id != BattleSkillDefinition.MoonCleave && id != BattleSkillDefinition.MoonBlink && id != BattleSkillDefinition.MoonShower &&
-             id != BattleSkillDefinition.JudgmentBeam && id != BattleSkillDefinition.HolyProtection && id != BattleSkillDefinition.HolyJudgment))
+             id != BattleSkillDefinition.JudgmentBeam && id != BattleSkillDefinition.HolyProtection && id != BattleSkillDefinition.HolyJudgment &&
+             id != BattleSkillDefinition.JungleSkirmish && id != BattleSkillDefinition.PrecisionStrike && id != BattleSkillDefinition.LethalTempo &&
+             id != BattleSkillDefinition.JumpingCleave && id != BattleSkillDefinition.AbsoluteDominion && id != BattleSkillDefinition.BloodDomain))
         { reason = "技能配置不存在或暂不支持"; return false; }
         int cooldown = self.CooldownRemaining(id);
         if (cooldown > 0) { reason = "技能冷却中，剩余 " + cooldown + " 回合"; return false; }
         if (unit.Combat == null) { reason = "未挂载战斗属性组件"; return false; }
         if (!unit.CanUseMoonSkill(id)) { reason = "当前没有有效目标、空位或月华倾泻仍在生效"; return false; }
+        if (!unit.CanUseHunterSkill(id)) { reason = "游射没有可射击落点或致命节奏范围内没有敌人"; return false; }
+        if (!unit.CanUseBloodLordSkill(definition)) { reason = "跳跃目标没有空位或周围没有可吸收单位"; return false; }
         if (id == BattleSkillDefinition.Lifesteal && unit.GetComponent<BattleLifestealComponent>()?.Stacks >= definition.Int(2))
         { reason = "吸血已达到最大层数"; return false; }
         BattleSkillPointComponent pool = battle.GetComponent<BattleSkillPointComponent>();
@@ -111,6 +115,8 @@ public static class BattleSkillComponentSystem
             }
         }
         ClearReservation(self);
+        // A committed skill interrupts the old volley; Lethal Tempo can then start a fresh lock.
+        unit.GetComponent<BattleLethalTempoComponent>()?.Dispose();
         action.Kind = BattleActionKind.Skill;
         action.SkillId = definition.Id;
         switch (definition.Id)
@@ -156,6 +162,16 @@ public static class BattleSkillComponentSystem
             case BattleSkillDefinition.MoonBlink:
             case BattleSkillDefinition.MoonShower:
                 self.CastMoonSkill(definition, action);
+                break;
+            case BattleSkillDefinition.JungleSkirmish:
+            case BattleSkillDefinition.PrecisionStrike:
+            case BattleSkillDefinition.LethalTempo:
+                self.CastHunterSkill(definition, action);
+                break;
+            case BattleSkillDefinition.JumpingCleave:
+            case BattleSkillDefinition.AbsoluteDominion:
+            case BattleSkillDefinition.BloodDomain:
+                self.CastBloodLordSkill(definition, action);
                 break;
             case BattleSkillDefinition.JudgmentBeam:
             case BattleSkillDefinition.HolyProtection:

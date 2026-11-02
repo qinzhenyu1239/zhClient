@@ -21,6 +21,7 @@ public static class BattleMovementComponentSystem
             case BattleSkillDefinition.ThunderStrike:
             case BattleSkillDefinition.ChainLightning:
             case BattleSkillDefinition.Thundercloud:
+            case BattleSkillDefinition.JumpingCleave:
             case BattleSkillDefinition.JudgmentBeam:
             case BattleSkillDefinition.MoonCleave:
             case BattleSkillDefinition.MoonShower:

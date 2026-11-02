@@ -37,7 +37,8 @@ public sealed class BattleCombatEffects : MonoBehaviour
         {
             if (hit.TargetSlot < 0 || hit.TargetSlot >= slots.Count) continue;
             Transform targetSlot = slots[hit.TargetSlot].transform;
-            if (action.Kind != BattleActionKind.Bleed && action.Kind != BattleActionKind.Lightning && action.Kind != BattleActionKind.Moonlight && action.Kind != BattleActionKind.Execution) PlayLunge(attackerSlot, targetSlot);
+            if (hit.IsArrow) yield return FlyArrow(attackerSlot, targetSlot);
+            else if (action.Kind != BattleActionKind.Bleed && action.Kind != BattleActionKind.Lightning && action.Kind != BattleActionKind.Moonlight && action.Kind != BattleActionKind.Execution) PlayLunge(attackerSlot, targetSlot);
             Transform node = targetSlot.Find("Portrait");
             Image image = node != null ? node.GetComponent<Image>() : null;
             Vector2 position = effectsLayer.InverseTransformPoint(node != null ? node.position : targetSlot.position);
@@ -51,6 +52,32 @@ public sealed class BattleCombatEffects : MonoBehaviour
                 StartCoroutine(ShowImpact(true, 0, effectsLayer.InverseTransformPoint(attackerSlot.position), null, font, "+" + hit.Healing.ToString("0.##"), true));
             yield return new WaitForSeconds(0.15f);
         }
+    }
+
+    private IEnumerator FlyArrow(Transform attackerSlot, Transform targetSlot)
+    {
+        Vector2 start = effectsLayer.InverseTransformPoint(attackerSlot.position);
+        Vector2 end = effectsLayer.InverseTransformPoint(targetSlot.position);
+        Image shaft = CreateImage("HunterArrow", start, new Vector2(30, 3));
+        shaft.color = new Color32(193, 240, 130, 255);
+        shaft.rectTransform.localRotation = Quaternion.Euler(0, 0, Mathf.Atan2(end.y - start.y, end.x - start.x) * Mathf.Rad2Deg);
+        foreach (int sign in new[] { -1, 1 })
+        {
+            Image tip = CreateImage("Arrowhead", Vector2.zero, new Vector2(13, 3));
+            tip.rectTransform.SetParent(shaft.rectTransform, false);
+            tip.rectTransform.anchoredPosition = new Vector2(9, sign * 4);
+            tip.rectTransform.localRotation = Quaternion.Euler(0, 0, -sign * 45);
+            tip.color = shaft.color;
+        }
+        const float duration = .18f;
+        float elapsed = 0;
+        while (elapsed < duration && shaft != null)
+        {
+            shaft.rectTransform.anchoredPosition = Vector2.Lerp(start, end, elapsed / duration);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+        if (shaft != null) Destroy(shaft.gameObject);
     }
 
     private void PlayLunge(Transform attackerSlot, Transform targetSlot)

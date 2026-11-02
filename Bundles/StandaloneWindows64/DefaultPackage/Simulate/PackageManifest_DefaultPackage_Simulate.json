@@ -497,6 +497,30 @@
         },
         {
             "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Images/BloodbornLord-JumpSlash.png",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 4,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Images/BloodbornLord-v2.png",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 4,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Images/BloodbornLord.png",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 4,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
             "AssetPath": "Assets/Game/AssetsPacakge/Images/download.png",
             "AssetGUID": "",
             "AssetTags": [],
@@ -506,6 +530,14 @@
         {
             "Address": "",
             "AssetPath": "Assets/Game/AssetsPacakge/Images/Judicator.png",
+            "AssetGUID": "",
+            "AssetTags": [],
+            "BundleID": 4,
+            "DependIDs": []
+        },
+        {
+            "Address": "",
+            "AssetPath": "Assets/Game/AssetsPacakge/Images/JungleHunter.png",
             "AssetGUID": "",
             "AssetTags": [],
             "BundleID": 4,

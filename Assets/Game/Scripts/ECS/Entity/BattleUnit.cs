@@ -19,8 +19,9 @@ public sealed class BattleUnit : Entity, IDestroy
     public float CurrentHp => Health?.CurrentHp ?? 0;
     public bool IsAlive => !IsDisposed && Health != null && Health.CurrentHp > 0;
     public bool HasActedThisRound => Action?.HasActedThisRound ?? false;
-    public int Attack => Combat?.Attack ?? 0;
-    public int Defense => (int)System.Math.Min(int.MaxValue, (long)(Combat?.Defense ?? 0) + (GetComponent<BattleShieldComponent>()?.DefenseBonus ?? 0));
+    public int Attack => (int)System.Math.Min(int.MaxValue, (long)(Combat?.Attack ?? 0) + (GetComponent<BattleBloodInheritanceComponent>()?.AttackBonus ?? 0));
+    public int Defense => (int)System.Math.Min(CharacterId == BattleEntity.BloodbornLordId ? 100 : int.MaxValue,
+        (long)(Combat?.Defense ?? 0) + (GetComponent<BattleBloodInheritanceComponent>()?.DefenseBonus ?? 0) + (GetComponent<BattleShieldComponent>()?.DefenseBonus ?? 0));
     public float Speed => Combat?.Speed ?? 0;
     public float AttackRange => Combat?.AttackRange ?? 0;
     public int BattleType => Combat?.BattleType ?? 0;

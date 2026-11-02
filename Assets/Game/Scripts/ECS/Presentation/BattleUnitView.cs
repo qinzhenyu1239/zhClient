@@ -11,6 +11,8 @@ public sealed class BattleUnitView : MonoBehaviour
     private Sprite thunderPortrait;
     private Sprite moonPortrait;
     private Sprite judicatorPortrait;
+    private Sprite hunterPortrait;
+    private Sprite bloodLordPortrait;
     private bool portraitsLoaded;
 
     private void RefreshPortrait()
@@ -23,9 +25,13 @@ public sealed class BattleUnitView : MonoBehaviour
             thunderPortrait = ResMgr.Instance.LoadAssetSync<Sprite>("Images/ThunderGod.png");
             moonPortrait = ResMgr.Instance.LoadAssetSync<Sprite>("Images/MoonlightGoddess.png");
             judicatorPortrait = ResMgr.Instance.LoadAssetSync<Sprite>("Images/Judicator.png");
+            hunterPortrait = ResMgr.Instance.LoadAssetSync<Sprite>("Images/JungleHunter.png");
+            bloodLordPortrait = ResMgr.Instance.LoadAssetSync<Sprite>("Images/BloodbornLord-JumpSlash.png");
             portraitsLoaded = true;
         }
-        image.sprite = Unit?.CharacterId == BattleEntity.JudicatorId ? judicatorPortrait :
+        image.sprite = Unit?.CharacterId == BattleEntity.BloodbornLordId ? bloodLordPortrait :
+            Unit?.CharacterId == BattleEntity.JungleHunterId ? hunterPortrait :
+            Unit?.CharacterId == BattleEntity.JudicatorId ? judicatorPortrait :
             Unit?.CharacterId == BattleEntity.MoonlightGoddessId ? moonPortrait :
             Unit?.CharacterId == BattleEntity.ThunderGodId ? thunderPortrait : defaultPortrait;
         image.preserveAspect = true;
@@ -57,6 +63,10 @@ public sealed class BattleUnitView : MonoBehaviour
         public int comboFirstRound, comboRemainingAttacks, comboMinHits, comboMaxHits;
         public int moonMarkStacks, moonShowerRemainingMarks;
         public int skill1CooldownRounds, skill2CooldownRounds, skill3CooldownRounds;
+        public bool bloodDomainActive;
+        public int bloodDomainFirstRound, bloodDomainLastRound, inheritedAttack, inheritedDefense;
+        public bool precisionActive;
+        public int precisionFirstRound, precisionLastRound, tempoTargetUnitId, tempoHits;
         public bool assassinHasInfiltrated;
         public bool assassinOpeningInfiltrationEligible;
     }
@@ -124,6 +134,20 @@ public sealed class BattleUnitView : MonoBehaviour
         runtimeData.comboMaxHits = combo?.MaxHits ?? 0;
         runtimeData.moonMarkStacks = unit.GetComponent<BattleMoonMarkComponent>()?.Stacks ?? 0;
         runtimeData.moonShowerRemainingMarks = unit.GetComponent<BattleMoonShowerComponent>()?.RemainingMarks ?? 0;
+        var bloodDomain = unit.GetComponent<BattleBloodDomainComponent>();
+        var inherited = unit.GetComponent<BattleBloodInheritanceComponent>();
+        runtimeData.bloodDomainActive = bloodDomain.IsBloodDomainActive();
+        runtimeData.bloodDomainFirstRound = bloodDomain?.FirstRound ?? 0;
+        runtimeData.bloodDomainLastRound = bloodDomain?.LastRound ?? 0;
+        runtimeData.inheritedAttack = inherited?.AttackBonus ?? 0;
+        runtimeData.inheritedDefense = inherited?.DefenseBonus ?? 0;
+        var precision = unit.GetComponent<BattlePrecisionComponent>();
+        runtimeData.precisionActive = unit.HasPrecision();
+        runtimeData.precisionFirstRound = precision?.FirstRound ?? 0;
+        runtimeData.precisionLastRound = precision?.LastRound ?? 0;
+        var tempo = unit.GetComponent<BattleLethalTempoComponent>();
+        runtimeData.tempoTargetUnitId = tempo?.Target?.UnitId ?? 0;
+        runtimeData.tempoHits = tempo == null ? 0 : tempo.HitCount(unit.GetParent<BattleEntity>().Round?.RoundNumber ?? 0);
         runtimeData.assassinHasInfiltrated = unit.GetComponent<BattleAssassinComponent>()?.HasInfiltrated ?? false;
         runtimeData.assassinOpeningInfiltrationEligible = unit.GetComponent<BattleAssassinComponent>()?.OpeningInfiltrationEligible ?? false;
     }
@@ -181,6 +205,10 @@ public sealed class BattleUnitView : MonoBehaviour
                 float shield = unit.GetComponent<BattleShieldComponent>()?.Amount ?? 0;
                 if (shield > 0) name.text += " 盾" + shield.ToString("0.#");
                 if (unit.IsSilenced()) name.text += " 禁攻";
+                if (unit.GetComponent<BattleBloodDomainComponent>().IsBloodDomainActive()) name.text += " 领域";
+                if (unit.HasPrecision()) name.text += " 必中";
+                var tempo = unit.GetComponent<BattleLethalTempoComponent>();
+                if (tempo != null && tempo.HasValidTarget()) name.text += " 节奏" + tempo.HitCount(unit.GetParent<BattleEntity>().Round.RoundNumber);
                 int marks = unit.GetComponent<BattleMoonMarkComponent>()?.Stacks ?? 0;
                 if (marks > 0) name.text += " 月印" + marks;
             }

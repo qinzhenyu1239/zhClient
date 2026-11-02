@@ -41,6 +41,9 @@ public static class BattlefieldComponentSystem
             unit.GetComponent<BattleThundercloudComponent>()?.Dispose();
             unit.GetComponent<BattleMoonShowerComponent>()?.Dispose();
             unit.GetComponent<BattleJudgmentComponent>()?.Dispose();
+            unit.GetComponent<BattleLethalTempoComponent>()?.Dispose();
+            unit.GetComponent<BattlePrecisionComponent>()?.Dispose();
+            unit.GetComponent<BattleBloodDomainComponent>()?.Dispose();
         }
         return true;
     }

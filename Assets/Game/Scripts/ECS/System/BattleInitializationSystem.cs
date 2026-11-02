@@ -71,6 +71,7 @@ public static class BattleInitializationSystem
                 identity.UnitId = slotIndex + 1;
                 identity.CharacterId = record.ID;
                 identity.Name = record.name;
+                identity.Job = record.job;
                 identity.Side = slotIndex < BattleEntity.EnemyStartSlot ? BattleSide.Ally : BattleSide.Enemy;
                 unit.AddComponent<BattlePositionComponent>();
                 BattleHealthComponent health = unit.AddComponent<BattleHealthComponent>();

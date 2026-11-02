@@ -13,6 +13,8 @@ public sealed class BattleEntity : Entity
     public const int ThunderGodId = 1002;
     public const int MoonlightGoddessId = 1003;
     public const int JudicatorId = 1004;
+    public const int JungleHunterId = 1005;
+    public const int BloodbornLordId = 1006;
 
     public BattlefieldComponent Battlefield => GetComponent<BattlefieldComponent>();
     public BattleRoundComponent Round => GetComponent<BattleRoundComponent>();

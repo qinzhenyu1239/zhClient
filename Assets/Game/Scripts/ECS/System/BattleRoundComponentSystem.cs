@@ -2,10 +2,11 @@ using System;
 using System.Collections.Generic;
 using Framework.ECS;
 
-public enum BattleActionKind { BasicAttack, Skill, Bleed, Lightning, Moonlight, Execution }
+public enum BattleActionKind { BasicAttack, Skill, Bleed, Lightning, Moonlight, Execution, BloodDomain }
 
 public sealed class BattleHitResult
 {
+    public bool IsArrow { get; internal set; }
     public bool Executed { get; internal set; }
     public int TargetSlot { get; internal set; }
     public bool Hit { get; internal set; }
@@ -62,6 +63,9 @@ public static class BattleRoundComponentSystem
                 unit.GetComponent<BattleThundercloudComponent>()?.Dispose();
                 unit.GetComponent<BattleMoonShowerComponent>()?.Dispose();
                 unit.GetComponent<BattleJudgmentComponent>()?.Dispose();
+                unit.GetComponent<BattleLethalTempoComponent>()?.Dispose();
+                unit.GetComponent<BattlePrecisionComponent>()?.Dispose();
+                unit.GetComponent<BattleBloodDomainComponent>()?.Dispose();
             }
         self.ActionOrder.Clear();
         self.PendingActions.Clear();
@@ -159,6 +163,7 @@ public static class BattleRoundComponentSystem
         battle.GetComponent<BattleEnemyAIComponent>()?.TrySelectSkill(unit);
         if (unit.Skills == null || !unit.Skills.TryExecutePending(result))
             unit.GetComponent<BattleBasicAttackComponent>()?.TryAttack(result);
+        result.ToSlot = unit.SlotIndex;
         unit.Action.HasActedThisRound = true;
         self.EnqueueAction(result);
         if (!battle.Battlefield.ResolveVictory())
@@ -191,8 +196,11 @@ public static class BattleRoundComponentSystem
             unit.Skills.CancelPendingSkill();
             if (unit.Action != null) unit.Action.HasActedThisRound = false;
             unit.GetComponent<BattleJudgmentComponent>()?.OnRoundStarted(self.RoundNumber);
+            unit.GetComponent<BattleBloodDomainComponent>()?.OnRoundStarted(self.RoundNumber);
             unit.GetComponent<BattleShieldComponent>()?.OnRoundStarted(self.RoundNumber);
             unit.GetComponent<BattleSilenceComponent>()?.OnRoundStarted(self.RoundNumber);
+            unit.GetComponent<BattlePrecisionComponent>()?.OnRoundStarted(self.RoundNumber);
+            unit.GetComponent<BattleLethalTempoComponent>().RetainedTargetInRange();
             unit.GetComponent<BattleBleedComponent>()?.OnRoundStarted(self);
         }
         if (!battle.Battlefield.ResolveVictory()) battle.GetComponent<BattleEnemyAIComponent>()?.PlanSkills();

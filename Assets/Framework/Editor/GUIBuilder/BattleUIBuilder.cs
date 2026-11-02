@@ -58,6 +58,7 @@ public static class BattleUIBuilder
 
             ConfigureFormation(root);
             ConfigureDamageStatistics(root);
+            ConfigureHeroStats(root);
             Directory.CreateDirectory(Path.GetDirectoryName(PrefabPath));
             GameObject saved = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
             AssetDatabase.SaveAssets();
@@ -150,6 +151,54 @@ public static class BattleUIBuilder
         Label("EnemyTitle", stats, "敌方", 0, -44, 212, 24, 15, Hex("F07878"), TextAnchor.MiddleLeft);
         Label("EnemyDamageText", stats, "等待开战", 0, -119, 216, 126, 12, Hex("C5D0DD"), TextAnchor.UpperLeft);
         stats.gameObject.SetActive(false);
+    }
+
+    [MenuItem("Tools/Battle UI/Configure Hero Stats Header")]
+    public static void ConfigureHeroStatsPrefab()
+    {
+        GameObject root = PrefabUtility.LoadPrefabContents(PrefabPath);
+        try
+        {
+            ConfigureHeroStats(root);
+            PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
+        }
+        finally { PrefabUtility.UnloadPrefabContents(root); }
+    }
+
+    private static void ConfigureHeroStats(GameObject root)
+    {
+        Transform content = root.transform.Find("Content");
+        var title = content.Find("Title").GetComponent<Text>();
+        title.rectTransform.anchoredPosition = new Vector2(-470, 325);
+        title.rectTransform.sizeDelta = new Vector2(270, 36);
+        title.fontSize = 24;
+        title.text = "英雄信息";
+        var subtitle = content.Find("Subtitle").GetComponent<Text>();
+        subtitle.rectTransform.anchoredPosition = new Vector2(-470, 294);
+        subtitle.rectTransform.sizeDelta = new Vector2(270, 24);
+        subtitle.fontSize = 13;
+        subtitle.text = "点击我方或敌方英雄查看";
+        var round = content.Find("RoundPanel").GetComponent<RectTransform>();
+        round.anchoredPosition = new Vector2(410, 313);
+        round.sizeDelta = new Vector2(110, 60);
+        var roundText = content.Find("RoundText").GetComponent<Text>();
+        roundText.rectTransform.anchoredPosition = new Vector2(410, 313);
+        roundText.rectTransform.sizeDelta = new Vector2(110, 44);
+        roundText.fontSize = 18;
+        var exit = content.Find("ExitBtn").GetComponent<RectTransform>();
+        exit.anchoredPosition = new Vector2(540, 313);
+        exit.sizeDelta = new Vector2(120, 44);
+        var exitText = exit.Find("Text").GetComponent<Text>();
+        exitText.rectTransform.sizeDelta = new Vector2(108, 44);
+        exitText.fontSize = 16;
+        Transform previous = content.Find("HeroStatsPanel");
+        if (previous != null) UnityEngine.Object.DestroyImmediate(previous.gameObject);
+        Transform stats = Box("HeroStatsPanel", content, 35, 310, 620, 76, Hex("1A2939")).transform;
+        string[] names = { "HealthText", "AttackText", "DefenseText", "SpeedText", "RangeText", "ShieldText" };
+        string[] labels = { "生命 —", "攻击 —", "防御 —", "速度 —", "射程 —", "护盾 —" };
+        for (int i = 0; i < names.Length; i++)
+            Label(names[i], stats, labels[i], -195 + (i % 3) * 195, i < 3 ? 17 : -17, 190, 26, 16,
+                i == 0 ? Accent : Hex("D5DEE8"), TextAnchor.MiddleLeft);
     }
 
     private static GameObject Node(string name, Transform parent, float x, float y, float w, float h)

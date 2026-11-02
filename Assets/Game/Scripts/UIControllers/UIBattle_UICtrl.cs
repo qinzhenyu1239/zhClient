@@ -16,6 +16,8 @@ public class UIBattle_UICtrl : UICtrl
     private Button damageToggleButton;
     private Text damageToggleText;
     private GameObject damagePanel;
+    private Text selectedNameText, selectedRoleText;
+    private Text selectedHealthText, selectedAttackText, selectedDefenseText, selectedSpeedText, selectedRangeText, selectedShieldText;
     private Text allyDamageText;
     private Text enemyDamageText;
     private string lastAction = "等待单位行动";
@@ -28,6 +30,14 @@ public class UIBattle_UICtrl : UICtrl
     private void Awake()
     {
         Formation = GetComponent<BattleFormationView>();
+        selectedNameText = View<Text>("Content/Title");
+        selectedRoleText = View<Text>("Content/Subtitle");
+        selectedHealthText = View<Text>("Content/HeroStatsPanel/HealthText");
+        selectedAttackText = View<Text>("Content/HeroStatsPanel/AttackText");
+        selectedDefenseText = View<Text>("Content/HeroStatsPanel/DefenseText");
+        selectedSpeedText = View<Text>("Content/HeroStatsPanel/SpeedText");
+        selectedRangeText = View<Text>("Content/HeroStatsPanel/RangeText");
+        selectedShieldText = View<Text>("Content/HeroStatsPanel/ShieldText");
         allyDamageText = View<Text>("Content/BattlePanel/DamagePanel/AllyDamageText");
         enemyDamageText = View<Text>("Content/BattlePanel/DamagePanel/EnemyDamageText");
         damagePanel = View<RectTransform>("Content/BattlePanel/DamagePanel").gameObject;
@@ -96,7 +106,7 @@ public class UIBattle_UICtrl : UICtrl
     private void SelectUnit(int slot)
     {
         BattleUnit unit = Battle?.GetUnitAt(slot);
-        if (unit == null || !unit.IsAlive || unit.Side != BattleSide.Ally) return;
+        if (unit == null || !unit.IsAlive) return;
         selectedUnit = unit;
         selectionMessage = "选择技能后立即扣点，替换该人物下一次普攻";
         RefreshSelection();
@@ -104,7 +114,7 @@ public class UIBattle_UICtrl : UICtrl
 
     private void QueueSkill(int index)
     {
-        if (selectedUnit?.Skills == null) return;
+        if (selectedUnit?.Skills == null || selectedUnit.Side != BattleSide.Ally) return;
         int id = SelectedSkillId(index);
         selectionMessage = selectedUnit.Skills.TryQueue(id, out string reason)
             ? "已锁定技能 " + (index + 1) + "：" + selectedUnit.Skills.GetDefinition(id).FormatDescription() : reason;
@@ -113,6 +123,7 @@ public class UIBattle_UICtrl : UICtrl
 
     private void CancelSkill()
     {
+        if (selectedUnit == null || selectedUnit.Side != BattleSide.Ally) return;
         int refund = selectedUnit?.Skills.CancelPendingSkill() ?? 0;
         selectionMessage = "已取消技能，退还 " + refund + " 点";
         RefreshSelection();
@@ -121,6 +132,7 @@ public class UIBattle_UICtrl : UICtrl
     private void RefreshSelection()
     {
         if (selectedUnit != null && (!selectedUnit.IsAlive || selectedUnit.IsDisposed)) selectedUnit = null;
+        RefreshSelectedHeroStats();
         Text title = View<Text>("Content/BattlePanel/Title");
         title.fontSize = 18;
         title.text = selectedUnit == null ? "战场" : selectedUnit.Name + " #" + selectedUnit.UnitId;
@@ -129,20 +141,48 @@ public class UIBattle_UICtrl : UICtrl
             int id = SelectedSkillId(i);
             var skills = selectedUnit?.Skills;
             BattleSkillDefinition definition = skills.GetDefinition(id);
-            skillButtons[i].interactable = skills != null && skills.CanQueue(id, out _);
+            skillButtons[i].interactable = selectedUnit?.Side == BattleSide.Ally && skills != null && skills.CanQueue(id, out _);
             skillButtons[i].GetComponentInChildren<Text>().text =
                 (skills?.PendingSkillId == id && id != 0 ? "✓ " : "") + "技能" + (i + 1) + " · " + (definition?.PointCost.ToString() ?? "—") +
                 (definition == null ? "" : "\n" + (skills.CooldownRemaining(id) > 0
                     ? "冷却 " + skills.CooldownRemaining(id) + " 回合" : "CD " + definition.CooldownRounds + " 回合"));
         }
-        if (cancelSkillButton != null) cancelSkillButton.interactable = selectedUnit?.Skills?.PendingSkillId > 0;
+        if (cancelSkillButton != null) cancelSkillButton.interactable = selectedUnit?.Side == BattleSide.Ally && selectedUnit?.Skills?.PendingSkillId > 0;
         var pool = Battle?.GetComponent<BattleSkillPointComponent>();
         Text pointLabel = View<Text>("Content/AutoFormationBtn/Text");
         pointLabel.fontSize = 15;
         pointLabel.text = pool == null ? "双方技能点 —" :
             "我方 " + pool.Current + "/" + pool.PointsPerRound + "\n敌方 " + pool.EnemyCurrent + "/" + pool.PointsPerRound;
-        View<Text>("Content/HintText").text = selectedUnit == null ? "点击我方人物选择技能 · 双方每回合各30点" :
+        View<Text>("Content/HintText").text = selectedUnit == null ? "点击英雄查看属性 · 点击我方英雄选择技能" :
+            selectedUnit.Side == BattleSide.Enemy ? "敌方英雄 · 可查看属性与技能冷却" :
             selectedUnit.HasActedThisRound ? "该人物本回合已行动，下回合可选择技能" : selectionMessage;
+    }
+
+    private void RefreshSelectedHeroStats()
+    {
+        var unit = selectedUnit;
+        if (unit == null)
+        {
+            selectedNameText.text = "英雄信息";
+            selectedRoleText.text = "点击我方或敌方英雄查看";
+            selectedHealthText.text = "生命 —";
+            selectedAttackText.text = "攻击 —";
+            selectedDefenseText.text = "防御 —";
+            selectedSpeedText.text = "速度 —";
+            selectedRangeText.text = "射程 —";
+            selectedShieldText.text = "护盾 —";
+            return;
+        }
+        selectedNameText.text = unit.Name;
+        string role = unit.Identity.Job;
+        if (string.IsNullOrEmpty(role)) role = unit.BattleType == 4 ? "射手" : unit.BattleType == 3 ? "刺客" : unit.BattleType == 2 ? "法师" : "战士";
+        selectedRoleText.text = (unit.Side == BattleSide.Ally ? "我方" : "敌方") + " · " + role + " · #" + unit.UnitId;
+        selectedHealthText.text = "生命 " + unit.CurrentHp.ToString("0.#") + " / " + unit.MaxHp;
+        selectedAttackText.text = "攻击 " + unit.Attack + (unit.Attack != unit.Combat.Attack ? "（基础" + unit.Combat.Attack + "）" : "");
+        selectedDefenseText.text = "防御 " + unit.Defense + (unit.Defense != unit.Combat.Defense ? "（基础" + unit.Combat.Defense + "）" : "");
+        selectedSpeedText.text = "速度 " + unit.Speed.ToString("0.##");
+        selectedRangeText.text = "射程 " + unit.AttackRange.ToString("0.##") + " 格";
+        selectedShieldText.text = "护盾 " + (unit.GetComponent<BattleShieldComponent>()?.Amount ?? 0).ToString("0.#");
     }
 
     public void StartBattle()
@@ -155,7 +195,9 @@ public class UIBattle_UICtrl : UICtrl
             character thunderGod = ExcelDataMgr.Instance.GetConfigData<character>(BattleEntity.ThunderGodId.ToString());
             character moonGoddess = ExcelDataMgr.Instance.GetConfigData<character>(BattleEntity.MoonlightGoddessId.ToString());
             character judicator = ExcelDataMgr.Instance.GetConfigData<character>(BattleEntity.JudicatorId.ToString());
-            BattleEntity battle = BattleInitializationSystem.CreateRandomBattle(new[] { config, thunderGod, moonGoddess, judicator },
+            character hunter = ExcelDataMgr.Instance.GetConfigData<character>(BattleEntity.JungleHunterId.ToString());
+            character bloodLord = ExcelDataMgr.Instance.GetConfigData<character>(BattleEntity.BloodbornLordId.ToString());
+            BattleEntity battle = BattleInitializationSystem.CreateRandomBattle(new[] { config, thunderGod, moonGoddess, judicator, hunter, bloodLord },
                 EcsRuntime.Instance.World, skillConfigs: skills);
             Formation.ResetCombatEffects();
             Formation.ShowBattle(battle);
@@ -165,6 +207,7 @@ public class UIBattle_UICtrl : UICtrl
             Battle.Enabled = isActiveAndEnabled;
             lastAction = "等待单位行动";
             RefreshBattleStatus();
+            RefreshSelection();
         }
         catch (Exception exception)
         {
@@ -190,7 +233,7 @@ public class UIBattle_UICtrl : UICtrl
         string attack = result.Target == null ? "无范围内目标" :
             result.Hit ? "造成 " + result.Damage.ToString("0.##") + " 伤害" : "攻击未命中";
         if (result.Kind == BattleActionKind.Bleed) attack = "流血 " + result.Damage.ToString("0.##");
-        else if (result.Kind == BattleActionKind.Skill || result.Kind == BattleActionKind.Lightning || result.Kind == BattleActionKind.Moonlight || result.Kind == BattleActionKind.Execution) attack = result.Message + (result.Target == null ? "" : "，" + attack);
+        else if (result.Kind == BattleActionKind.Skill || result.Kind == BattleActionKind.Lightning || result.Kind == BattleActionKind.Moonlight || result.Kind == BattleActionKind.Execution || result.Kind == BattleActionKind.BloodDomain) attack = result.Message + (result.Target == null ? "" : "，" + attack);
         else if (!string.IsNullOrEmpty(result.Message)) attack = result.Message + "，" + attack;
         if (result.Hits.Count > 1) attack += "（" + result.Hits.Count + "次）";
         foreach (var hit in result.Hits) if (hit.Executed) { attack += " · 斩杀"; break; }

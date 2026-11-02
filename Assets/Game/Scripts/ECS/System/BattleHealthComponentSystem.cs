@@ -31,6 +31,17 @@ public static class BattleHealthComponentSystem
         return applied;
     }
 
+    // Health transfer bypasses shields and armor, and still uses the common death/judgment path.
+    public static float DrainHealth(this BattleHealthComponent self, float amount)
+    {
+        if (self == null || self.IsDisposed || self.CurrentHp <= 0) return 0;
+        float applied = Math.Min(self.CurrentHp, Math.Max(0, amount));
+        self.CurrentHp -= applied;
+        self.FinalizeDeath();
+        if (applied > 0) self.GetParent<BattleUnit>()?.GetParent<BattleEntity>()?.CheckJudgments();
+        return applied;
+    }
+
     // Executions remove remaining HP directly, bypassing armor and every shield layer.
     public static float Execute(this BattleHealthComponent self)
     {
@@ -43,17 +54,23 @@ public static class BattleHealthComponentSystem
 
     private static void FinalizeDeath(this BattleHealthComponent self)
     {
+        if (self.CurrentHp > 0) return;
         BattleUnit target = self.GetParent<BattleUnit>();
-        if (self.CurrentHp <= 0)
-        {
-            target?.Skills.CancelPendingSkill();
-            target?.GetComponent<BattleMoonMarkComponent>()?.Dispose();
-            target?.GetComponent<BattleMoonShowerComponent>()?.Dispose();
-            target?.GetComponent<BattleShieldComponent>()?.Dispose();
-            target?.GetComponent<BattleJudgmentComponent>()?.Dispose();
-        }
-        BattlefieldComponent field = target?.GetParent<BattleEntity>()?.Battlefield;
-        if (self.CurrentHp <= 0 && field != null && target.Position != null && field.GetUnitAt(target.SlotIndex) == target)
-            field.Occupancy[target.SlotIndex] = null;
+        BattleEntity battle = target?.GetParent<BattleEntity>();
+        BattlefieldComponent field = battle?.Battlefield;
+        int slot = target?.SlotIndex ?? -1;
+        int attack = target?.Attack ?? 0, defense = target?.Defense ?? 0;
+        bool occupied = field != null && slot >= 0 && field.GetUnitAt(slot) == target;
+        target?.Skills.CancelPendingSkill();
+        target?.GetComponent<BattleMoonMarkComponent>()?.Dispose();
+        target?.GetComponent<BattleMoonShowerComponent>()?.Dispose();
+        target?.GetComponent<BattleShieldComponent>()?.Dispose();
+        target?.GetComponent<BattleJudgmentComponent>()?.Dispose();
+        target?.GetComponent<BattleLethalTempoComponent>()?.Dispose();
+        target?.GetComponent<BattlePrecisionComponent>()?.Dispose();
+        target?.GetComponent<BattleBloodDomainComponent>()?.Dispose();
+        if (!occupied) return;
+        field.Occupancy[slot] = null;
+        battle.OnBloodDomainDeath(target, slot, attack, defense, self.MaxHp);
     }
 }

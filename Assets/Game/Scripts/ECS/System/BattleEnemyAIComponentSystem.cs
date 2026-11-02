@@ -31,6 +31,8 @@ public static class BattleEnemyAIComponentSystem
                 unit.GetComponent<BattleComboAttackComponent>()?.RemainingAttacks > 0) continue;
             if (id == BattleSkillDefinition.Thundercloud &&
                 unit.GetComponent<BattleThundercloudComponent>()?.RemainingStrikes > 0) continue;
+            if (id == BattleSkillDefinition.LethalTempo && unit.GetComponent<BattleLethalTempoComponent>().HasValidTarget()) continue;
+            if (id == BattleSkillDefinition.BloodDomain && unit.GetComponent<BattleBloodDomainComponent>().IsBloodDomainActive()) continue;
             if (id == BattleSkillDefinition.HolyJudgment &&
                 unit.GetComponent<BattleJudgmentComponent>()?.LastRound >= battle.Round.RoundNumber) continue;
             usable.Add(id);
